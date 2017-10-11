@@ -12,20 +12,35 @@
 #define new DEBUG_NEW 
 #endif
 
+int getChoice(std::vector<std::string>& optionStrs) {
+	int choice = 1;
+	for (auto optionStr : optionStrs) {
+		std::cout << "\n" << choice << ": " << optionStr;
+		choice++;
+	}
+	std::cout << "\n?";
+	int key = getchar() - 49;
+	int dummy = getchar();
+	return key;
+}
+
 int main() {
 	CTigVM* vm = new CTigVM();
 
-	//read a compiled Tig file into memory
 	if (!vm->loadProgFile("d:\\projects\\TC\\output.tig")) {
 		std::cout << "\nError opening file.";
 		getchar();
 		return 0;
 	}
 
-	//execute it
 	vm->execute();
 
-	getchar();
+	while (vm->getStatus() == vmAwaitChoice) {
+		std::vector<std::string> optionStrs;
+		vm->getOptionStrs(optionStrs);
+		int choice = getChoice(optionStrs);
+		vm->sendMessage(vmMsgChoice, choice);
+	}
 
 	delete vm;
 	_CrtDumpMemoryLeaks();
