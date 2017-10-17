@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include<iostream>
 #include "src\vm.h"
+#include "src\vmConsole.h"
 
 #if defined(_DEBUG)
 
@@ -25,7 +26,7 @@ int getChoice(std::vector<std::string>& optionStrs) {
 }
 
 int main() {
-	CTigVM* vm = new CTigVM();
+	CTigVM* vm = new CVMconsole();
 
 	if (!vm->loadProgFile("d:\\projects\\TC\\output.tig")) {
 		std::cout << "\nError opening file.";
@@ -40,9 +41,13 @@ int main() {
 		vm->getOptionStrs(optionStrs);
 		int choice = getChoice(optionStrs);
 		vm->sendMessage(vmMsgChoice, choice);
+		if (vm->getStatus() == vmEnding)
+			break;
 	}
 
 	delete vm;
+	getchar();
+
 	_CrtDumpMemoryLeaks();
     return 0;
 }

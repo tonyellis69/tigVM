@@ -22,9 +22,6 @@ bool CTigVM::loadProgFile(std::string filename) {
 	progFile.read((char*)&progBufSize, 4);
 	progBufSize -= headerSize;
 
-	//read bytecode
-	//progBufSize = progFile.tellg();
-	//progFile.seekg(0);
 	progBuf = new char[progBufSize];
 	progFile.read(progBuf, progBufSize);
 
@@ -33,6 +30,19 @@ bool CTigVM::loadProgFile(std::string filename) {
 	progFile.read((char*)&eventTableSize, 4);
 	eventTable.resize(eventTableSize);
 	progFile.read((char*)eventTable.data(), eventTableSize * sizeof(TEventRec));
+
+	//read global variable table
+	int globalVarTableSize;
+	progFile.read((char*)&globalVarTableSize, 4);
+	globalVarNameTable.resize(globalVarTableSize);
+	int addr; std::string tmp;
+	for (auto globalVarNameRec : globalVarNameTable) {
+		std::getline(progFile, tmp, '\0');
+		globalVarNameRec.name = tmp;
+		progFile.read((char*)&addr, 4);
+		globalVarNameRec.id = addr;
+	}
+	globalVars.resize(globalVarTableSize);
 
 	pc = 0;
 	return true;
@@ -49,9 +59,11 @@ void CTigVM::execute() {
 		int opCode = readNextOp();
 
 		switch(opCode) {
+			case opPushStr: pushStr(); break;
 			case opPrint : print(); break;
 			case opOption: option(); break;
-
+			case opEnd: end(); break;
+			case opAssign: assign(); break;
 		}
 	}
 }
@@ -62,15 +74,18 @@ int CTigVM::readNextOp() {
 
 /** Read a string starting at the program counter, advancing it. */
 std::string  CTigVM::readString() {
-	int size = readInt();
+	unsigned int size = readWord();
 	string text(progBuf + pc, size);
 	pc += size;
 	return text;
 }
 
 /** Read a 4-byte integer starting at the program counter, advancing it. */
-int CTigVM::readInt() {
-	int nextInt = progBuf[pc];
+unsigned int CTigVM::readWord() {
+	unsigned int nextInt = (unsigned char)progBuf[pc];
+	nextInt += progBuf[pc + 1] << 8;
+	nextInt += progBuf[pc + 2] << 16;
+	nextInt += progBuf[pc + 3] << 24;
 	pc += 4;
 	return nextInt;
 }
@@ -80,10 +95,16 @@ char CTigVM::readByte() {
 	return progBuf[pc++];
 }
 
-/** Handle a print text instruction. */
-void CTigVM::print() {
+/** Push a string onto the stack. */
+void CTigVM::pushStr() {
 	string text = readString();
-	cout << "\n" << text.c_str();
+	stack.push(text);
+}
+
+/** Pop the top value off the stack and print it. */
+void CTigVM::print() {
+	writeText(stack.top().getStringValue());
+	stack.pop();
 }
 
 /**	Handle a user option instruction. */
@@ -94,13 +115,29 @@ void CTigVM::option() {
 	currentOptionList.resize(nOptions);
 	for (int option = 0; option < nOptions; option++) {
 		currentOptionList[option].text = readString();
-		currentOptionList[option].branchId = readInt();
+		currentOptionList[option].branchId = readWord();
 	}
 
 	//go into suspended mode
 	escape = true;
 	status = vmAwaitChoice;
 }
+
+/** Exit this Tig program gracefully. */
+void CTigVM::end() {
+	escape = true;
+	status = vmEnding;
+}
+
+/** Pop the top value off the stack and assign it to a (global) variable. */
+void CTigVM::assign() {
+	int varId = readWord();
+	globalVars[varId] = stack.top();
+	stack.pop();
+}
+
+
+
 
 TVMstatus CTigVM::getStatus() {
 	return status;

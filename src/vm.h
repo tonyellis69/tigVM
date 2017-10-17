@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 
+#include "stack.h"
+
 struct TEventRec {
 	int id;
 	int address;
@@ -13,7 +15,12 @@ struct TOptionRec {
 	int branchId; ///<The event it leads to.
 };
 
-enum TVMstatus { vmExecuting, vmAwaitChoice };
+struct TGlobalVarNameRec {
+	std::string name; 
+	int id;
+};
+
+enum TVMstatus { vmExecuting, vmAwaitChoice, vmEnding };
 enum TVMmsg { vmMsgChoice };
 
 /** The Tig virtual machine. Reads compiled Tig code and executes it. */
@@ -25,16 +32,20 @@ public:
 	void execute();
 	int readNextOp();
 	std::string readString();
-	int readInt();
+	unsigned int readWord();
 	char readByte();
-	
+
+	void pushStr();
 	void print();
 	void option();
+	void end();
+
+	void assign();
 
 	TVMstatus getStatus();
 	void getOptionStrs(std::vector<std::string>& optionStrs);
 	void sendMessage(TVMmsg msg, int msgInt);
-
+	virtual void writeText(std::string& text) {};
 
 	int progBufSize;
 	char* progBuf; 
@@ -44,4 +55,8 @@ public:
 
 	std::vector<TEventRec> eventTable; ///<Event ids and addresses.
 	std::vector<TOptionRec> currentOptionList; ///<A list of user options
+	std::vector<TGlobalVarNameRec> globalVarNameTable; ///<Global variable names and ids.
+	std::vector<CTigVar> globalVars; ///<Global variable storage.
+
+	CStack stack; ///<The virtual machine stack.
 };

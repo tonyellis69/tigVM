@@ -140,11 +140,17 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="src\stack.cpp" />
+    <ClCompile Include="src\var.cpp" />
     <ClCompile Include="src\vm.cpp" />
+    <ClCompile Include="src\vmConsole.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\TC\src\sharedTypes.h" />
+    <ClInclude Include="src\stack.h" />
+    <ClInclude Include="src\var.h" />
     <ClInclude Include="src\vm.h" />
+    <ClInclude Include="src\vmConsole.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
