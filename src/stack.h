@@ -10,8 +10,10 @@ class CStack {
 public:
 	CStack() {};
 	void push(std::string& string);
+	void push(int n);
+	void push(CTigVar& var);
 	CTigVar& top();
-	void pop();
+	CTigVar pop();
 
 	std::vector<CTigVar> stack;
 };

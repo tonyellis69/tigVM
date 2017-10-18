@@ -59,7 +59,9 @@ void CTigVM::execute() {
 		int opCode = readNextOp();
 
 		switch(opCode) {
+			case opPushInt: pushInt(); break;
 			case opPushStr: pushStr(); break;
+			case opPushVar: pushVar(); break;
 			case opPrint : print(); break;
 			case opOption: option(); break;
 			case opEnd: end(); break;
@@ -95,16 +97,30 @@ char CTigVM::readByte() {
 	return progBuf[pc++];
 }
 
-/** Push a string onto the stack. */
+
+/** Push the following integer onto the stack. */
+void CTigVM::pushInt() {
+	int n = readWord();
+	stack.push(n);
+}
+
+/** Push the following string onto the stack. */
 void CTigVM::pushStr() {
 	string text = readString();
 	stack.push(text);
 }
 
+/** Push the value from a global variable onto the stack. */
+void CTigVM::pushVar() {
+	int varId = readWord();
+	stack.push(globalVars[varId]);
+}
+
+
+
 /** Pop the top value off the stack and print it. */
 void CTigVM::print() {
-	writeText(stack.top().getStringValue());
-	stack.pop();
+	writeText(stack.pop().getStringValue());
 }
 
 /**	Handle a user option instruction. */
@@ -129,11 +145,11 @@ void CTigVM::end() {
 	status = vmEnding;
 }
 
-/** Pop the top value off the stack and assign it to a (global) variable. */
+/** Pop a value off the stack and assign it to a (global) variable. */
 void CTigVM::assign() {
-	int varId = readWord();
-	globalVars[varId] = stack.top();
-	stack.pop();
+	CTigVar value = stack.pop(); 
+	int varId = stack.pop().getIntValue();
+	globalVars[varId] = value;
 }
 
 

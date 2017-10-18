@@ -35,7 +35,9 @@ public:
 	unsigned int readWord();
 	char readByte();
 
+	void pushInt();
 	void pushStr();
+	void pushVar();
 	void print();
 	void option();
 	void end();
