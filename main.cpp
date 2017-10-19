@@ -13,16 +13,32 @@
 #define new DEBUG_NEW 
 #endif
 
-int getChoice(std::vector<std::string>& optionStrs) {
+void getChoice(CTigVM* vm) {
 	int choice = 1;
+	std::vector<std::string> optionStrs;
+	vm->getOptionStrs(optionStrs);
 	for (auto optionStr : optionStrs) {
 		std::cout << "\n" << choice << ": " << optionStr;
 		choice++;
 	}
 	std::cout << "\n?";
-	int key = getchar() - 49;
+
+	TVMmsg msg;
+	msg.type = vmMsgChoice;
+	msg.integer = getchar() - 49;
 	int dummy = getchar();
-	return key;
+	vm->sendMessage(msg); 
+}
+
+void getString(CTigVM* vm) {
+	std::string string;
+	std::cin >> string;
+	int dummy = getchar();
+
+	TVMmsg msg;
+	msg.type = vmMsgString;
+	msg.text = string;
+	vm->sendMessage(msg);
 }
 
 int main() {
@@ -36,13 +52,13 @@ int main() {
 
 	vm->execute();
 
-	while (vm->getStatus() == vmAwaitChoice) {
-		std::vector<std::string> optionStrs;
-		vm->getOptionStrs(optionStrs);
-		int choice = getChoice(optionStrs);
-		vm->sendMessage(vmMsgChoice, choice);
-		if (vm->getStatus() == vmEnding)
-			break;
+	while (vm->getStatus() != vmEnding) {
+		if (vm->getStatus() == vmAwaitChoice) {
+			getChoice(vm);
+		}
+		if (vm->getStatus() == vmAwaitString) {
+			getString(vm);
+		}
 	}
 
 	delete vm;

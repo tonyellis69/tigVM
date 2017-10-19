@@ -66,6 +66,7 @@ void CTigVM::execute() {
 			case opOption: option(); break;
 			case opEnd: end(); break;
 			case opAssign: assign(); break;
+			case opGetString: getString(); break;
 		}
 	}
 }
@@ -152,6 +153,12 @@ void CTigVM::assign() {
 	globalVars[varId] = value;
 }
 
+/** Go into 'awaiting string from user' mode. */
+void CTigVM::getString() {
+	escape = true;
+	status = vmAwaitString;
+}
+
 
 
 
@@ -165,15 +172,18 @@ void CTigVM::getOptionStrs(std::vector<std::string>& optionStrs) {
 }
 
 /** Handle the various messages the user can send. */
-void CTigVM::sendMessage(TVMmsg msg, int msgInt) {
-	//if we're being sent a user choice
-	//and we're in awaiting choice mode
-	//find the address of the chosen event
-	//and resume execution there
-	if (msg == vmMsgChoice && status == vmAwaitChoice) {
-		int eventId = currentOptionList[msgInt].branchId;
+void CTigVM::sendMessage(TVMmsg& msg) {
+	if (msg.type == vmMsgChoice && status == vmAwaitChoice) {
+		int choice = msg.integer;
+		int eventId = currentOptionList[choice].branchId;
 		pc = eventTable[eventId - 1].address;
 		execute();
-
 	}
+
+	if (msg.type == vmMsgString && status == vmAwaitString) {
+		//push the string on the stack and resume execution
+		stack.push(msg.text);
+		execute();
+	}
+
 }

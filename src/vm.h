@@ -20,8 +20,14 @@ struct TGlobalVarNameRec {
 	int id;
 };
 
-enum TVMstatus { vmExecuting, vmAwaitChoice, vmEnding };
-enum TVMmsg { vmMsgChoice };
+enum TVMmsgType { vmMsgChoice, vmMsgString };
+struct TVMmsg {
+	TVMmsgType type;
+	std::string text;
+	int integer;
+};
+
+enum TVMstatus { vmExecuting, vmAwaitChoice, vmAwaitString, vmEnding };
 
 /** The Tig virtual machine. Reads compiled Tig code and executes it. */
 class CTigVM {
@@ -41,12 +47,12 @@ public:
 	void print();
 	void option();
 	void end();
-
 	void assign();
+	void getString();
 
 	TVMstatus getStatus();
 	void getOptionStrs(std::vector<std::string>& optionStrs);
-	void sendMessage(TVMmsg msg, int msgInt);
+	void sendMessage(TVMmsg& msg);
 	virtual void writeText(std::string& text) {};
 
 	int progBufSize;
