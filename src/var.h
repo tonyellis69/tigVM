@@ -15,6 +15,8 @@ public:
 	std::string& getStringValue();
 	int getIntValue();
 
+
+
 	TigVarType type;
 	std::shared_ptr<std::string> pStrValue;
 	union {

@@ -11,9 +11,12 @@ void CTigVar::setIntValue(int n) {
 }
 
 std::string & CTigVar::getStringValue() {
-	return *pStrValue;
+	if (type == tigString)
+		return *pStrValue;
 }
 
 int CTigVar::getIntValue() {
 	return intValue;
 }
+
+

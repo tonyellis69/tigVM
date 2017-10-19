@@ -25,15 +25,14 @@ void getChoice(CTigVM* vm) {
 
 	TVMmsg msg;
 	msg.type = vmMsgChoice;
-	msg.integer = getchar() - 49;
-	int dummy = getchar();
+	std::cin >> msg.integer;
+	msg.integer--;
 	vm->sendMessage(msg); 
 }
 
 void getString(CTigVM* vm) {
 	std::string string;
 	std::cin >> string;
-	int dummy = getchar();
 
 	TVMmsg msg;
 	msg.type = vmMsgString;

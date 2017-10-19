@@ -49,6 +49,7 @@ public:
 	void end();
 	void assign();
 	void getString();
+	void add();
 
 	TVMstatus getStatus();
 	void getOptionStrs(std::vector<std::string>& optionStrs);

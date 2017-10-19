@@ -67,6 +67,7 @@ void CTigVM::execute() {
 			case opEnd: end(); break;
 			case opAssign: assign(); break;
 			case opGetString: getString(); break;
+			case opAdd: add(); break;
 		}
 	}
 }
@@ -157,6 +158,18 @@ void CTigVM::assign() {
 void CTigVM::getString() {
 	escape = true;
 	status = vmAwaitString;
+}
+
+/** Pop the two top values of the stack, add and push the result. */
+void CTigVM::add() {
+	CTigVar op2 = stack.pop();
+	CTigVar op1 = stack.pop();
+	CTigVar result;
+	if (op1.type == tigString) {
+		result.setStringValue(op1.getStringValue() + op2.getStringValue());
+	}
+
+	stack.push(result);
 }
 
 
