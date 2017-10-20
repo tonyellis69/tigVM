@@ -11,6 +11,7 @@ struct TEventRec {
 };
 
 struct TOptionRec {
+	int index;///<Position among the total number of options for this event,
 	std::string text; ///<Option text.
 	int branchId; ///<The event it leads to.
 };
@@ -46,6 +47,7 @@ public:
 	void pushVar();
 	void print();
 	void option();
+	void giveOptions();
 	void end();
 	void assign();
 	void getString();

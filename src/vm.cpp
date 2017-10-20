@@ -68,6 +68,7 @@ void CTigVM::execute() {
 			case opAssign: assign(); break;
 			case opGetString: getString(); break;
 			case opAdd: add(); break;
+			case opGiveOptions: giveOptions(); break;
 		}
 	}
 }
@@ -126,6 +127,7 @@ void CTigVM::print() {
 }
 
 /**	Handle a user option instruction. */
+/*
 void CTigVM::option() {
 	//read options into an option structure
 	currentOptionList.clear();
@@ -137,6 +139,21 @@ void CTigVM::option() {
 	}
 
 	//go into suspended mode
+	escape = true;
+	status = vmAwaitChoice;
+}*/
+
+/** Record the following option for later processing. */
+void CTigVM::option() {
+	TOptionRec option;
+	option.index = readByte();
+	option.text = readString();
+	option.branchId = readWord();
+	currentOptionList.push_back(option);
+}
+
+/** *Give the user a selection of options to chose from. */
+void CTigVM::giveOptions() {
 	escape = true;
 	status = vmAwaitChoice;
 }
@@ -178,6 +195,8 @@ void CTigVM::add() {
 TVMstatus CTigVM::getStatus() {
 	return status;
 }
+
+
 void CTigVM::getOptionStrs(std::vector<std::string>& optionStrs) {
 	for (auto option : currentOptionList) {
 		optionStrs.push_back(option.text);
@@ -190,6 +209,7 @@ void CTigVM::sendMessage(TVMmsg& msg) {
 		int choice = msg.integer;
 		int eventId = currentOptionList[choice].branchId;
 		pc = eventTable[eventId - 1].address;
+		currentOptionList.clear();
 		execute();
 	}
 
