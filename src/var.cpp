@@ -13,6 +13,9 @@ void CTigVar::setIntValue(int n) {
 std::string & CTigVar::getStringValue() {
 	if (type == tigString)
 		return *pStrValue;
+
+	setStringValue(std::string( "##Undefined!##"));
+	return *pStrValue;
 }
 
 int CTigVar::getIntValue() {

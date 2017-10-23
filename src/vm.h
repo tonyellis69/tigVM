@@ -11,9 +11,8 @@ struct TEventRec {
 };
 
 struct TOptionRec {
-	int index;///<Position among the total number of options for this event,
+	int index;///<Position among the total number of options for this event.
 	std::string text; ///<Option text.
-	int branchId; ///<The event it leads to.
 };
 
 struct TGlobalVarNameRec {
@@ -52,6 +51,7 @@ public:
 	void assign();
 	void getString();
 	void add();
+	void jumpEvent();
 
 	TVMstatus getStatus();
 	void getOptionStrs(std::vector<std::string>& optionStrs);
