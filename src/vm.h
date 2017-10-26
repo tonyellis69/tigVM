@@ -2,8 +2,10 @@
 
 #include <string>
 #include <vector>
+#include <ctime>
 
 #include "stack.h"
+#include "daemon.h"
 
 struct TEventRec {
 	int id;
@@ -20,6 +22,13 @@ struct TGlobalVarNameRec {
 	int id;
 };
 
+class CObjDef {
+public:
+	CObjDef() {};
+	int id;
+	std::vector<int> members;
+};
+
 enum TVMmsgType { vmMsgChoice, vmMsgString };
 struct TVMmsg {
 	TVMmsgType type;
@@ -32,10 +41,12 @@ enum TVMstatus { vmExecuting, vmAwaitChoice, vmAwaitString, vmEnding };
 /** The Tig virtual machine. Reads compiled Tig code and executes it. */
 class CTigVM {
 public:
-	CTigVM() { escape = false; };
+	CTigVM() { escape = false; time(&currentTime); };
 	~CTigVM();
 	bool loadProgFile(std::string filename);
 	void execute();
+	void update();
+
 	int readNextOp();
 	std::string readString();
 	unsigned int readWord();
@@ -52,6 +63,8 @@ public:
 	void getString();
 	void add();
 	void jumpEvent();
+	void startTimer();
+	void createTimedEvent();
 
 	TVMstatus getStatus();
 	void getOptionStrs(std::vector<std::string>& optionStrs);
@@ -68,6 +81,10 @@ public:
 	std::vector<TOptionRec> currentOptionList; ///<A list of user options
 	std::vector<TGlobalVarNameRec> globalVarNameTable; ///<Global variable names and ids.
 	std::vector<CTigVar> globalVars; ///<Global variable storage.
+	std::vector<CObjDef> objectDefTable; ///<Object class definitions.
 
 	CStack stack; ///<The virtual machine stack.
+
+	time_t currentTime;
+	CDaemon daemon;
 };

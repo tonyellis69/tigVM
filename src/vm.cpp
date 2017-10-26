@@ -44,13 +44,26 @@ bool CTigVM::loadProgFile(std::string filename) {
 	}
 	globalVars.resize(globalVarTableSize);
 
+	//read object definition table
+	int objectDefTableSize; char nMembers;
+	progFile.read((char*)&objectDefTableSize, 4);
+	for (int objNo = 0; objNo < objectDefTableSize; objNo++) {
+		CObjDef objDef;
+		progFile.read((char*)&objDef.id, 4);
+		progFile.read(&nMembers, 1); int memberId;
+		for (int memberNo = 0; memberNo < nMembers; memberNo++) {
+			progFile.read((char*)&memberId, 4);
+			objDef.members.push_back(memberId);
+		}
+		objectDefTable.push_back(objDef);
+	}
+
 	pc = 0;
 	return true;
 }
 
 /** Execute the currently loaded program starting at the current program counter position. */
 void CTigVM::execute() {
-
 	escape = false;
 	status = vmExecuting;
 	//while not the end of the program buffer
@@ -70,9 +83,24 @@ void CTigVM::execute() {
 			case opAdd: add(); break;
 			case opGiveOptions: giveOptions(); break;
 			case opJumpEvent: jumpEvent(); break;
+			case opStartTimer: startTimer(); break;
+			case opTimedEvent: createTimedEvent(); break;
 		}
 	}
 }
+
+/** Update the real-time side of the VM, if needed. */
+void CTigVM::update() {
+	//see how much time has elapsed
+	//update the timer
+
+	time_t newTime;
+	time(&newTime);
+	int dtSeconds = (int)difftime(newTime, currentTime);
+	currentTime = newTime;
+	daemon.update(dtSeconds);
+}
+
 
 int CTigVM::readNextOp() {
 	return progBuf[pc++];
@@ -172,9 +200,24 @@ void CTigVM::add() {
 	stack.push(result);
 }
 
+/** Jump execution to the following event, never to return. */
 void CTigVM::jumpEvent() {
 	int eventId = readWord();
-	pc = eventTable[eventId -1].address;
+	pc = eventTable[eventId ].address;
+}
+
+/** Start the daemon timer counting up from zero in seconds. */
+void CTigVM::startTimer() {
+	daemon.startTimer();
+}
+
+/** Tell the daemon to run the given event after the given delay. */
+void CTigVM::createTimedEvent() {
+	timedEvent event;
+	int eventId = readWord();
+	event.codeAddr = eventTable[eventId].address;
+	event.delay = readWord();
+	daemon.addEvent(event);
 }
 
 
@@ -208,5 +251,4 @@ void CTigVM::sendMessage(TVMmsg& msg) {
 		stack.push(msg.text);
 		execute();
 	}
-
 }

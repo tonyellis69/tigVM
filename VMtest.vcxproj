@@ -140,6 +140,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="src\daemon.cpp" />
     <ClCompile Include="src\stack.cpp" />
     <ClCompile Include="src\var.cpp" />
     <ClCompile Include="src\vm.cpp" />
@@ -147,6 +148,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\TC\src\sharedTypes.h" />
+    <ClInclude Include="src\daemon.h" />
     <ClInclude Include="src\stack.h" />
     <ClInclude Include="src\var.h" />
     <ClInclude Include="src\vm.h" />
