@@ -51,11 +51,19 @@ bool CTigVM::loadProgFile(std::string filename) {
 		CObjDef objDef;
 		progFile.read((char*)&objDef.id, 4);
 		progFile.read(&nMembers, 1); int memberId;
+		
+		CObjInstance object;
+		object.classId = objDef.id;
+
 		for (int memberNo = 0; memberNo < nMembers; memberNo++) {
 			progFile.read((char*)&memberId, 4);
 			objDef.members.push_back(memberId);
+			CTigVar blank;
+			object.members[memberId] = blank;
 		}
 		objectDefTable.push_back(objDef);
+		objects[objDef.id] = object;
+
 	}
 
 	pc = 0;
@@ -142,10 +150,15 @@ void CTigVM::pushStr() {
 	stack.push(text);
 }
 
-/** Push the value from a global variable onto the stack. */
+/** Push the value from a global variable (or member) onto the stack. */
 void CTigVM::pushVar() {
 	int varId = readWord();
-	stack.push(globalVars[varId]);
+	if (varId < memberIdStart)
+		stack.push(globalVars[varId]);
+	else {
+		int objectId = stack.pop().getIntValue();
+		stack.push(objects[objectId].members[varId]);
+	}
 }
 
 
@@ -180,7 +193,12 @@ void CTigVM::end() {
 void CTigVM::assign() {
 	CTigVar value = stack.pop(); 
 	int varId = stack.pop().getIntValue();
-	globalVars[varId] = value;
+	if (varId < memberIdStart)
+		globalVars[varId] = value;
+	else { // it's an object member id
+		int objectId = stack.pop().getIntValue();
+		objects[objectId].members[varId] = value;
+	}
 }
 
 /** Go into 'awaiting string from user' mode. */

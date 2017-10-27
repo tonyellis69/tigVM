@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 #include <ctime>
 
 #include "stack.h"
@@ -27,6 +28,14 @@ public:
 	CObjDef() {};
 	int id;
 	std::vector<int> members;
+};
+
+
+class CObjInstance {
+public:
+	CObjInstance() {};
+	int classId;
+	std::map<int, CTigVar> members;
 };
 
 enum TVMmsgType { vmMsgChoice, vmMsgString };
@@ -82,6 +91,7 @@ public:
 	std::vector<TGlobalVarNameRec> globalVarNameTable; ///<Global variable names and ids.
 	std::vector<CTigVar> globalVars; ///<Global variable storage.
 	std::vector<CObjDef> objectDefTable; ///<Object class definitions.
+	std::map<int, CObjInstance> objects; ///<Object instances.
 
 	CStack stack; ///<The virtual machine stack.
 
