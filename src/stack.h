@@ -12,6 +12,7 @@ public:
 	void push(std::string& string);
 	void push(int n);
 	void push(CTigVar& var);
+	void pushObj(int id);
 	CTigVar& top();
 	CTigVar pop();
 

@@ -17,6 +17,13 @@ void CStack::push(CTigVar & var) {
 	stack.push_back(var);
 }
 
+void CStack::pushObj(int id) {
+	CTigVar word;
+	word.setObjId(id);
+	stack.push_back(word);
+
+}
+
 /** Return the top value on the stack. */
 CTigVar & CStack::top() {
 	return stack.back();

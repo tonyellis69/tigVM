@@ -45,7 +45,7 @@ struct TVMmsg {
 	int integer;
 };
 
-enum TVMstatus { vmExecuting, vmAwaitChoice, vmAwaitString, vmEnding };
+enum TVMstatus { vmExecuting, vmAwaitChoice, vmAwaitString, vmEnding, vmError };
 
 /** The Tig virtual machine. Reads compiled Tig code and executes it. */
 class CTigVM {
@@ -74,6 +74,7 @@ public:
 	void jumpEvent();
 	void startTimer();
 	void createTimedEvent();
+	void pushObj();
 
 	TVMstatus getStatus();
 	void getOptionStrs(std::vector<std::string>& optionStrs);

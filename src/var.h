@@ -3,7 +3,7 @@
 #include <string>
 #include <memory>
 
-enum TigVarType { tigUndefined, tigString, tigInt, tigFloat };
+enum TigVarType { tigUndefined, tigString, tigInt, tigFloat, tigObj };
 
 /** A class encapsulationg the Tig dynamic data type, which can be a string, float, int, etc. */
 class CTigVar {
@@ -12,6 +12,7 @@ public:
 	//~CTigVar() {};
 	void setStringValue(std::string& string);
 	void setIntValue(int n);
+	void setObjId(int id);
 	std::string& getStringValue();
 	int getIntValue();
 

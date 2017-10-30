@@ -76,7 +76,8 @@ void CTigVM::execute() {
 	status = vmExecuting;
 	//while not the end of the program buffer
 	//get the next instruction and execute it.
-	while (pc < progBufSize && !escape) {
+	//while (pc < progBufSize && !escape) {
+	while (pc < progBufSize && status == vmExecuting) {
 		int opCode = readNextOp();
 
 		switch(opCode) {
@@ -93,6 +94,7 @@ void CTigVM::execute() {
 			case opJumpEvent: jumpEvent(); break;
 			case opStartTimer: startTimer(); break;
 			case opTimedEvent: createTimedEvent(); break;
+			case opPushObj:	pushObj(); break;
 		}
 	}
 }
@@ -192,7 +194,17 @@ void CTigVM::end() {
 /** Pop a value off the stack and assign it to a (global) variable. */
 void CTigVM::assign() {
 	CTigVar value = stack.pop(); 
-	int varId = stack.pop().getIntValue();
+
+	CTigVar var = stack.pop();
+	if (var.type == tigObj) {
+		std::cout << "\nError! Attempt to assign a value to an object.";
+		escape = true;
+		status = vmError;
+		return;
+	}
+	int varId = var.getIntValue();
+
+
 	if (varId < memberIdStart)
 		globalVars[varId] = value;
 	else { // it's an object member id
@@ -238,13 +250,19 @@ void CTigVM::createTimedEvent() {
 	daemon.addEvent(event);
 }
 
+/** Push an object identifier onto the stack. */
+void CTigVM::pushObj() {
+	int objId = readWord();
+	stack.pushObj(objId);
+}
+
+
 
 
 
 TVMstatus CTigVM::getStatus() {
 	return status;
 }
-
 
 void CTigVM::getOptionStrs(std::vector<std::string>& optionStrs) {
 	for (auto option : currentOptionList) {

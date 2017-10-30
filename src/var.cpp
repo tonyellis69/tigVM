@@ -10,6 +10,11 @@ void CTigVar::setIntValue(int n) {
 	type = tigInt;
 }
 
+void CTigVar::setObjId(int id) {
+	intValue = id;
+	type = tigObj;
+}
+
 std::string & CTigVar::getStringValue() {
 	if (type == tigString)
 		return *pStrValue;
