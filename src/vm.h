@@ -27,7 +27,8 @@ class CObjDef {
 public:
 	CObjDef() {};
 	int id;
-	std::vector<int> members;
+	//std::vector<int> members;
+	std::map<int, CTigVar> members;
 };
 
 

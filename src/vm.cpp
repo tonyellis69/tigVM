@@ -56,9 +56,26 @@ bool CTigVM::loadProgFile(std::string filename) {
 		object.classId = objDef.id;
 
 		for (int memberNo = 0; memberNo < nMembers; memberNo++) {
-			progFile.read((char*)&memberId, 4);
-			objDef.members.push_back(memberId);
 			CTigVar blank;
+			progFile.read((char*)&memberId, 4);
+			TigVarType type;
+			char c;
+			progFile.read(&c, 1);
+			type = (TigVarType) c;
+			if (type == tigString) {
+				unsigned int size;
+				progFile.read((char*)&size, 4);
+				std::string buf;
+				buf.resize(size);
+				progFile.read(&buf[0], size);
+				blank.setStringValue(buf);
+			}
+			else {
+				int intValue;
+				progFile.read((char*)&intValue, 4);
+				blank.setIntValue(intValue);
+			}
+			objDef.members[memberId] = blank;		
 			object.members[memberId] = blank;
 		}
 		objectDefTable.push_back(objDef);

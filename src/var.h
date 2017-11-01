@@ -3,7 +3,7 @@
 #include <string>
 #include <memory>
 
-enum TigVarType { tigUndefined, tigString, tigInt, tigFloat, tigObj };
+#include "..\..\TC\src\sharedTypes.h"
 
 /** A class encapsulationg the Tig dynamic data type, which can be a string, float, int, etc. */
 class CTigVar {
