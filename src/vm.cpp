@@ -56,10 +56,10 @@ bool CTigVM::loadProgFile(std::string filename) {
 		object.classId = objDef.id;
 
 		for (int memberNo = 0; memberNo < nMembers; memberNo++) {
-			CTigVar blank;
+			CTigVar blank; 
 			progFile.read((char*)&memberId, 4);
 			TigVarType type;
-			char c;
+			char c;	int intValue;
 			progFile.read(&c, 1);
 			type = (TigVarType) c;
 			if (type == tigString) {
@@ -70,10 +70,17 @@ bool CTigVM::loadProgFile(std::string filename) {
 				progFile.read(&buf[0], size);
 				blank.setStringValue(buf);
 			}
-			else {
-				int intValue;
+			if (type == tigFunc) {
+				progFile.read((char*)&intValue, 4);
+				blank.setFuncAddr(intValue);
+			}
+			if (type == tigInt) {
 				progFile.read((char*)&intValue, 4);
 				blank.setIntValue(intValue);
+			}
+			if (type == tigUndefined) {
+				progFile.read((char*)&intValue, 4);
+				//can just throw this away
 			}
 			objDef.members[memberId] = blank;		
 			object.members[memberId] = blank;
@@ -84,6 +91,8 @@ bool CTigVM::loadProgFile(std::string filename) {
 	}
 
 	pc = 0;
+	if (eventTable.size())
+		pc = eventTable[0].address;
 	return true;
 }
 
@@ -112,6 +121,8 @@ void CTigVM::execute() {
 			case opStartTimer: startTimer(); break;
 			case opTimedEvent: createTimedEvent(); break;
 			case opPushObj:	pushObj(); break;
+			case opCall: call(); break;
+			case opReturn: returnOp(); break;
 		}
 	}
 }
@@ -271,6 +282,18 @@ void CTigVM::createTimedEvent() {
 void CTigVM::pushObj() {
 	int objId = readWord();
 	stack.pushObj(objId);
+}
+
+/** Exectute the member function currently on the stack. */
+void CTigVM::call() {
+	int addr = stack.pop().getFuncAddress();
+	stack.push(pc);
+	pc = addr;
+}
+
+/** Transfer execution to the address at the top of the stack. */
+void CTigVM::returnOp() {
+	pc = stack.pop().getIntValue();
 }
 
 

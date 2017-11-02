@@ -76,6 +76,8 @@ public:
 	void startTimer();
 	void createTimedEvent();
 	void pushObj();
+	void call();
+	void returnOp();
 
 	TVMstatus getStatus();
 	void getOptionStrs(std::vector<std::string>& optionStrs);

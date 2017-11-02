@@ -15,6 +15,11 @@ void CTigVar::setObjId(int id) {
 	type = tigObj;
 }
 
+void CTigVar::setFuncAddr(int addr) {
+	type = tigFunc;
+	funcAddress = addr;
+}
+
 std::string & CTigVar::getStringValue() {
 	if (type == tigString)
 		return *pStrValue;
@@ -25,6 +30,10 @@ std::string & CTigVar::getStringValue() {
 
 int CTigVar::getIntValue() {
 	return intValue;
+}
+
+int CTigVar::getFuncAddress() {
+	return funcAddress;
 }
 
 
