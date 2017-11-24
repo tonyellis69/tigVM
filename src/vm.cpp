@@ -1,9 +1,15 @@
 #include "vm.h"
 #include "..\..\TC\src\sharedTypes.h"
-#include <fstream>
-#include <iostream>
+
+
 
 using namespace std;
+
+CTigVM::CTigVM() {
+	escape = false; 
+	time(&currentTime);
+	status = vmNoProgram;
+}
 
 CTigVM::~CTigVM() {
 	delete progBuf;
@@ -16,22 +22,38 @@ bool CTigVM::loadProgFile(std::string filename) {
 		return false;
 	}
 
-	//read header
-	int headerSize = 4;
-	progFile.seekg(0);
-	progFile.read((char*)&progBufSize, 4);
-	progBufSize -= headerSize;
+	progBufSize = readHeader(progFile);
 
 	progBuf = new char[progBufSize];
 	progFile.read(progBuf, progBufSize);
 
-	//read event table
+	readEventTable(progFile);
+	readGlobalVarTable(progFile);
+	readObjectDefTable(progFile);
+	
+	pc = 0;
+	if (eventTable.size()) //assumes first event is the starting event
+		pc = eventTable[0].address;
+	status = vmExecuting;
+	return true;
+}
+
+int CTigVM::readHeader(ifstream & progFile) {
+	int headerSize = 4;
+	int bufSize;
+	progFile.seekg(0);
+	progFile.read((char*)&bufSize, 4);
+	return bufSize - headerSize;
+}
+
+void CTigVM::readEventTable(std::ifstream & progFile) {
 	int eventTableSize;
 	progFile.read((char*)&eventTableSize, 4);
 	eventTable.resize(eventTableSize);
 	progFile.read((char*)eventTable.data(), eventTableSize * sizeof(TEventRec));
+}
 
-	//read global variable table
+void CTigVM::readGlobalVarTable(std::ifstream & progFile) {
 	int globalVarTableSize;
 	progFile.read((char*)&globalVarTableSize, 4);
 	globalVarNameTable.resize(globalVarTableSize);
@@ -43,69 +65,52 @@ bool CTigVM::loadProgFile(std::string filename) {
 		globalVarNameRec.id = addr;
 	}
 	globalVars.resize(globalVarTableSize);
+}
 
-	//read object definition table
+/** Read the progfile object defintions and create an object for each one. */
+void CTigVM::readObjectDefTable(std::ifstream & progFile) {
 	int objectDefTableSize; char nMembers;
 	progFile.read((char*)&objectDefTableSize, 4);
 	for (int objNo = 0; objNo < objectDefTableSize; objNo++) {
-		CObjDef objDef;
-		progFile.read((char*)&objDef.id, 4);
-		progFile.read(&nMembers, 1); int memberId;
-		
 		CObjInstance object;
-		object.classId = objDef.id;
+		progFile.read((char*)&object.id, 4);
+		progFile.read(&nMembers, 1); int memberId;
 
 		for (int memberNo = 0; memberNo < nMembers; memberNo++) {
-			CTigVar blank; 
+			CTigVar blank;
 			progFile.read((char*)&memberId, 4);
 			TigVarType type;
-			char c;	int intValue;
+			char c;	int intValue; std::string buf;
 			progFile.read(&c, 1);
-			type = (TigVarType) c;
-			if (type == tigString) {
+			type = (TigVarType)c;
+			switch (type) {
+			case tigString:
 				unsigned int size;
 				progFile.read((char*)&size, 4);
-				std::string buf;
 				buf.resize(size);
 				progFile.read(&buf[0], size);
-				blank.setStringValue(buf);
-			}
-			if (type == tigFunc) {
+				blank.setStringValue(buf); break;
+			case tigFunc:
 				progFile.read((char*)&intValue, 4);
-				blank.setFuncAddr(intValue);
-			}
-			if (type == tigInt) {
+				blank.setFuncAddr(intValue); break;
+			case tigInt:
 				progFile.read((char*)&intValue, 4);
-				blank.setIntValue(intValue);
+				blank.setIntValue(intValue); break;
+			case tigUndefined:
+				progFile.read((char*)&intValue, 4); //can just throw this away
+				break;
 			}
-			if (type == tigUndefined) {
-				progFile.read((char*)&intValue, 4);
-				//can just throw this away
-			}
-			objDef.members[memberId] = blank;		
 			object.members[memberId] = blank;
 		}
-		objectDefTable.push_back(objDef);
-		objects[objDef.id] = object;
-
+		objects[object.id] = object;
 	}
-
-	pc = 0;
-	if (eventTable.size())
-		pc = eventTable[0].address;
-	return true;
 }
 
 /** Execute the currently loaded program starting at the current program counter position. */
 void CTigVM::execute() {
 	escape = false;
-	status = vmExecuting;
-	//while not the end of the program buffer
-	//get the next instruction and execute it.
-	//while (pc < progBufSize && !escape) {
 	while (pc < progBufSize && status == vmExecuting) {
 		int opCode = readNextOp();
-
 		switch(opCode) {
 			case opPushInt: pushInt(); break;
 			case opPushStr: pushStr(); break;
@@ -319,6 +324,7 @@ void CTigVM::sendMessage(TVMmsg& msg) {
 		pc += optionIndex * sizeof(int);
 		pc = tableStart + readWord();
 		currentOptionList.clear();
+		status = vmExecuting;
 		execute();
 	}
 

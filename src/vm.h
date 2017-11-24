@@ -4,6 +4,8 @@
 #include <vector>
 #include <map>
 #include <ctime>
+#include <iostream>
+#include <fstream>
 
 #include "stack.h"
 #include "daemon.h"
@@ -23,19 +25,10 @@ struct TGlobalVarNameRec {
 	int id;
 };
 
-class CObjDef {
-public:
-	CObjDef() {};
-	int id;
-	//std::vector<int> members;
-	std::map<int, CTigVar> members;
-};
-
-
 class CObjInstance {
 public:
 	CObjInstance() {};
-	int classId;
+	int id;
 	std::map<int, CTigVar> members;
 };
 
@@ -46,14 +39,18 @@ struct TVMmsg {
 	int integer;
 };
 
-enum TVMstatus { vmExecuting, vmAwaitChoice, vmAwaitString, vmEnding, vmError };
+enum TVMstatus { vmExecuting, vmAwaitChoice, vmAwaitString, vmEnding, vmError, vmNoProgram };
 
 /** The Tig virtual machine. Reads compiled Tig code and executes it. */
 class CTigVM {
 public:
-	CTigVM() { escape = false; time(&currentTime); };
+	CTigVM();
 	~CTigVM();
 	bool loadProgFile(std::string filename);
+	int readHeader(std::ifstream& progFile);
+	void readEventTable(std::ifstream& progFile);
+	void readGlobalVarTable(std::ifstream& progFile);
+	void readObjectDefTable(std::ifstream& progFile);
 	void execute();
 	void update();
 
@@ -94,7 +91,6 @@ public:
 	std::vector<TOptionRec> currentOptionList; ///<A list of user options
 	std::vector<TGlobalVarNameRec> globalVarNameTable; ///<Global variable names and ids.
 	std::vector<CTigVar> globalVars; ///<Global variable storage.
-	std::vector<CObjDef> objectDefTable; ///<Object class definitions.
 	std::map<int, CObjInstance> objects; ///<Object instances.
 
 	CStack stack; ///<The virtual machine stack.
