@@ -43,7 +43,7 @@ void getString(CTigVM* vm) {
 int main() {
 	CTigVM* vm = new CVMconsole();
 
-	if (!vm->loadProgFile("d:\\projects\\TC\\output.tig")) {
+	if (!vm->loadProgFile("d:\\projects\\TC\\Debug\\output.tig")) {
 		std::cout << "\nError opening file.";
 		getchar();
 		return 0;
@@ -51,7 +51,7 @@ int main() {
 
 	vm->execute();
 
-	while (vm->getStatus() != vmEnding) {
+	while (vm->getStatus() != vmEnding && vm->getStatus() != vmEof) {
 		if (vm->getStatus() == vmAwaitChoice) {
 			getChoice(vm);
 		}
@@ -59,6 +59,8 @@ int main() {
 			getString(vm);
 		}
 	}
+
+	vm->getGlobalVar("globalVar");
 
 	delete vm;
 	getchar();

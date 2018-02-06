@@ -15,7 +15,7 @@ public:
 	void setIntValue(int n);
 	void setObjId(int id);
 	void setFuncAddr(int addr);
-	std::string& getStringValue();
+	std::string getStringValue();
 	int getIntValue();
 	int getFuncAddress();
 

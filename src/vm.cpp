@@ -1,7 +1,7 @@
 #include "vm.h"
 #include "..\..\TC\src\sharedTypes.h"
 
-
+#include <algorithm>    // std::find_if
 
 using namespace std;
 
@@ -58,7 +58,7 @@ void CTigVM::readGlobalVarTable(std::ifstream & progFile) {
 	progFile.read((char*)&globalVarTableSize, 4);
 	globalVarNameTable.resize(globalVarTableSize);
 	int addr; std::string tmp;
-	for (auto globalVarNameRec : globalVarNameTable) {
+	for (auto &globalVarNameRec : globalVarNameTable) {
 		std::getline(progFile, tmp, '\0');
 		globalVarNameRec.name = tmp;
 		progFile.read((char*)&addr, 4);
@@ -130,6 +130,8 @@ void CTigVM::execute() {
 			case opReturn: returnOp(); break;
 		}
 	}
+	if (pc >= progBufSize)
+		status = vmEof;
 }
 
 /** Update the real-time side of the VM, if needed. */
@@ -325,12 +327,33 @@ void CTigVM::sendMessage(TVMmsg& msg) {
 		pc = tableStart + readWord();
 		currentOptionList.clear();
 		status = vmExecuting;
-		execute();
+		execute(); //TO DO: maybe not execute here, where we can't guarantee a return to the user. Let the user choose when.
 	}
 
 	if (msg.type == vmMsgString && status == vmAwaitString) {
 		//push the string on the stack and resume execution
 		stack.push(msg.text);
+		status = vmExecuting;
 		execute();
 	}
+}
+
+/* old way to do it, preserved for reference.
+struct find_varName {
+	std::string name;
+	find_varName(std::string& name) : name(name) {}
+	bool operator () (const TGlobalVarNameRec& nameRec) const	{
+		return nameRec.name == name;
+	}
+}; */
+
+/** Return the value of the named global variable, if found. */
+CTigVar CTigVM::getGlobalVar(std::string varName) {
+	//auto it = find_if(globalVarNameTable.begin(), globalVarNameTable.end(), find_varName(varName));
+	auto it = find_if(globalVarNameTable.begin(), globalVarNameTable.end(), 
+		[&](TGlobalVarNameRec& nameRec) { return nameRec.name == varName; });
+	CTigVar var;
+	if (it != globalVarNameTable.end())
+		var = globalVars[it->id];
+	return var;
 }

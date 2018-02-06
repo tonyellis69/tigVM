@@ -20,10 +20,11 @@ void CTigVar::setFuncAddr(int addr) {
 	funcAddress = addr;
 }
 
-std::string & CTigVar::getStringValue() {
+std::string CTigVar::getStringValue() {
 	if (type == tigString)
 		return *pStrValue;
-
+	if (type == tigInt)
+		return std::to_string(intValue);
 	setStringValue(std::string( "##Undefined!##"));
 	return *pStrValue;
 }

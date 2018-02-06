@@ -39,7 +39,8 @@ struct TVMmsg {
 	int integer;
 };
 
-enum TVMstatus { vmExecuting, vmAwaitChoice, vmAwaitString, vmEnding, vmError, vmNoProgram };
+enum TVMstatus { vmExecuting, vmAwaitChoice, vmAwaitString, vmEnding, vmError, vmNoProgram,
+	vmEof};
 
 /** The Tig virtual machine. Reads compiled Tig code and executes it. */
 class CTigVM {
@@ -80,6 +81,8 @@ public:
 	void getOptionStrs(std::vector<std::string>& optionStrs);
 	void sendMessage(TVMmsg& msg);
 	virtual void writeText(std::string& text) {};
+
+	CTigVar getGlobalVar(std::string varName);
 
 	int progBufSize;
 	char* progBuf; 
