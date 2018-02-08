@@ -74,8 +74,12 @@ void CTigVM::readObjectDefTable(std::ifstream & progFile) {
 	for (int objNo = 0; objNo < objectDefTableSize; objNo++) {
 		CObjInstance object;
 		progFile.read((char*)&object.id, 4);
-		progFile.read(&nMembers, 1); int memberId;
+		progFile.read((char*)&object.classId, 4);
+		if (object.classId != -1) {
+			object.members = objects[object.classId].members;
+		}
 
+		progFile.read(&nMembers, 1); int memberId;
 		for (int memberNo = 0; memberNo < nMembers; memberNo++) {
 			CTigVar blank;
 			progFile.read((char*)&memberId, 4);

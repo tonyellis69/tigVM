@@ -29,6 +29,7 @@ class CObjInstance {
 public:
 	CObjInstance() {};
 	int id;
+	int classId;
 	std::map<int, CTigVar> members;
 };
 
