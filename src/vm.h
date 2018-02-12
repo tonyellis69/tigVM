@@ -53,6 +53,7 @@ public:
 	void readEventTable(std::ifstream& progFile);
 	void readGlobalVarTable(std::ifstream& progFile);
 	void readObjectDefTable(std::ifstream& progFile);
+	void readMemberNameTable(std::ifstream & progFile);
 	void execute();
 	void update();
 
@@ -80,10 +81,15 @@ public:
 
 	TVMstatus getStatus();
 	void getOptionStrs(std::vector<std::string>& optionStrs);
-	void sendMessage(TVMmsg& msg);
+	void sendMessage(const TVMmsg& msg);
 	virtual void writeText(std::string& text) {};
 
 	CTigVar getGlobalVar(std::string varName);
+	CTigVar getMember(CTigVar& obj, std::string fnName);
+
+	int getMemberId(std::string & name);
+
+	void ObjMessage(CTigVar & obj, std::string fnName);
 
 	int progBufSize;
 	char* progBuf; 
@@ -96,6 +102,7 @@ public:
 	std::vector<TGlobalVarNameRec> globalVarNameTable; ///<Global variable names and ids.
 	std::vector<CTigVar> globalVars; ///<Global variable storage.
 	std::map<int, CObjInstance> objects; ///<Object instances.
+	std::vector<std::string> memberNames; ///<Member names in id number order.
 
 	CStack stack; ///<The virtual machine stack.
 

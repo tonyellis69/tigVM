@@ -60,7 +60,7 @@ int main() {
 		}
 	}
 
-	vm->getGlobalVar("globalVar");
+	vm->getGlobalVar("startRoom");
 
 	delete vm;
 	getchar();

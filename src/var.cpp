@@ -37,4 +37,8 @@ int CTigVar::getFuncAddress() {
 	return funcAddress;
 }
 
+int CTigVar::getObjId() {
+	return intValue;
+}
+
 

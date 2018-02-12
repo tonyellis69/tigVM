@@ -30,6 +30,7 @@ bool CTigVM::loadProgFile(std::string filename) {
 	readEventTable(progFile);
 	readGlobalVarTable(progFile);
 	readObjectDefTable(progFile);
+	readMemberNameTable(progFile);
 	
 	pc = 0;
 	if (eventTable.size()) //assumes first event is the starting event
@@ -100,6 +101,9 @@ void CTigVM::readObjectDefTable(std::ifstream & progFile) {
 			case tigInt:
 				progFile.read((char*)&intValue, 4);
 				blank.setIntValue(intValue); break;
+			case tigObj:
+				progFile.read((char*)&intValue, 4);
+				blank.setObjId(intValue); break;
 			case tigUndefined:
 				progFile.read((char*)&intValue, 4); //can just throw this away
 				break;
@@ -107,6 +111,16 @@ void CTigVM::readObjectDefTable(std::ifstream & progFile) {
 			object.members[memberId] = blank;
 		}
 		objects[object.id] = object;
+	}
+}
+
+/** Read the list of member names from the program file and store them. */
+void CTigVM::readMemberNameTable(std::ifstream & progFile) {
+	int memberNameTableSize; char numMembers;
+	progFile.read((char*)&memberNameTableSize, 4);
+	memberNames.resize(memberNameTableSize);
+	for (auto &name : memberNames) {
+		std::getline(progFile, name, '\0');
 	}
 }
 
@@ -322,7 +336,7 @@ void CTigVM::getOptionStrs(std::vector<std::string>& optionStrs) {
 }
 
 /** Handle the various messages the user can send. */
-void CTigVM::sendMessage(TVMmsg& msg) {
+void CTigVM::sendMessage(const TVMmsg& msg) {
 	if (msg.type == vmMsgChoice && status == vmAwaitChoice) {
 		int choice = msg.integer;
 		int optionIndex = currentOptionList[choice].index;
@@ -336,7 +350,7 @@ void CTigVM::sendMessage(TVMmsg& msg) {
 
 	if (msg.type == vmMsgString && status == vmAwaitString) {
 		//push the string on the stack and resume execution
-		stack.push(msg.text);
+		stack.push(std::string(msg.text));
 		status = vmExecuting;
 		execute();
 	}
@@ -360,4 +374,39 @@ CTigVar CTigVM::getGlobalVar(std::string varName) {
 	if (it != globalVarNameTable.end())
 		var = globalVars[it->id];
 	return var;
+}
+
+/** Return a copy of the the named member. */
+CTigVar CTigVM::getMember(CTigVar & obj, std::string fnName) {
+	int memberNo = getMemberId(fnName);
+	return objects[obj.getObjId()].members[memberNo];
+}
+
+/** Return the member id of the named member. */
+int CTigVM::getMemberId(std::string& name) {
+	auto it = find_if(memberNames.begin(), memberNames.end(),
+		[&](std::string& currentName) { return currentName == name; });
+
+	if (it == memberNames.end()) {
+		std::cerr << "\nMember " << name << " not found.";
+		return 0;
+	}
+
+	return it - memberNames.begin() + memberIdStart;
+}
+
+/** Execute the named object member. */
+void CTigVM::ObjMessage(CTigVar & obj, std::string fnName) {
+	CTigVar member = getMember(obj, fnName);
+	if (member.type == tigString) { //or int or float 
+		writeText(member.getStringValue());
+		return;
+	}
+	if (member.type == tigFunc) {
+		pc = member.getFuncAddress();
+		status = vmExecuting;
+		execute();
+		//TO DO: calling execute internally is not ideal. Might be better to just
+		//assume execution gets handled by the caller.
+	}
 }

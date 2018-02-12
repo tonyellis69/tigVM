@@ -18,8 +18,7 @@ public:
 	std::string getStringValue();
 	int getIntValue();
 	int getFuncAddress();
-
-
+	int getObjId();
 
 	TigVarType type;
 	std::shared_ptr<std::string> pStrValue;
