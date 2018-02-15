@@ -66,6 +66,7 @@ public:
 	void pushStr();
 	void pushVar();
 	void print();
+	void printHot();
 	void option();
 	void giveOptions();
 	void end();
@@ -83,6 +84,7 @@ public:
 	void getOptionStrs(std::vector<std::string>& optionStrs);
 	void sendMessage(const TVMmsg& msg);
 	virtual void writeText(std::string& text) {};
+	virtual void writeHotText(std::string& text, int id) {};
 
 	CTigVar getGlobalVar(std::string varName);
 	CTigVar getMember(CTigVar& obj, std::string fnName);
@@ -94,6 +96,7 @@ public:
 	int progBufSize;
 	char* progBuf; 
 	int pc; ///<Program counter. Points at the next command to execute.
+	int globalCodeAddr; 
 	bool escape; ///<Set to true to escape the normal execution loop.
 	TVMstatus status; ///<Current mode.
 

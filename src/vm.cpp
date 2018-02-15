@@ -32,7 +32,7 @@ bool CTigVM::loadProgFile(std::string filename) {
 	readObjectDefTable(progFile);
 	readMemberNameTable(progFile);
 	
-	pc = 0;
+	pc = globalCodeAddr;
 	if (eventTable.size()) //assumes first event is the starting event
 		pc = eventTable[0].address;
 	status = vmExecuting;
@@ -40,10 +40,11 @@ bool CTigVM::loadProgFile(std::string filename) {
 }
 
 int CTigVM::readHeader(ifstream & progFile) {
-	int headerSize = 4;
+	int headerSize = 8;
 	int bufSize;
 	progFile.seekg(0);
 	progFile.read((char*)&bufSize, 4);
+	progFile.read((char*)&globalCodeAddr, 4);
 	return bufSize - headerSize;
 }
 
@@ -146,6 +147,7 @@ void CTigVM::execute() {
 			case opPushObj:	pushObj(); break;
 			case opCall: call(); break;
 			case opReturn: returnOp(); break;
+			case opPrintHot: printHot(); break;
 		}
 	}
 	if (pc >= progBufSize)
@@ -221,6 +223,13 @@ void CTigVM::pushVar() {
 /** Pop the top value off the stack and print it. */
 void CTigVM::print() {
 	writeText(stack.pop().getStringValue());
+}
+
+/** Pop string and id off the stack and print it as hottext. */
+void CTigVM::printHot() {
+	int id = stack.pop().getIntValue();
+	std::string text = stack.pop().getStringValue();
+	writeHotText(text, id);
 }
 
 
@@ -335,7 +344,7 @@ void CTigVM::getOptionStrs(std::vector<std::string>& optionStrs) {
 	}
 }
 
-/** Handle the various messages the user can send. */
+/** Handle a message sent by the user. */
 void CTigVM::sendMessage(const TVMmsg& msg) {
 	if (msg.type == vmMsgChoice && status == vmAwaitChoice) {
 		int choice = msg.integer;
@@ -403,6 +412,7 @@ void CTigVM::ObjMessage(CTigVar & obj, std::string fnName) {
 		return;
 	}
 	if (member.type == tigFunc) {
+		stack.push(pc); //because return from function pulls call address from stack
 		pc = member.getFuncAddress();
 		status = vmExecuting;
 		execute();
