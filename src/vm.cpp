@@ -147,7 +147,7 @@ void CTigVM::execute() {
 			case opPushObj:	pushObj(); break;
 			case opCall: call(); break;
 			case opReturn: returnOp(); break;
-			case opPrintHot: printHot(); break;
+			case opHot: hot(); break;
 		}
 	}
 	if (pc >= progBufSize)
@@ -224,14 +224,6 @@ void CTigVM::pushVar() {
 void CTigVM::print() {
 	writeText(stack.pop().getStringValue());
 }
-
-/** Pop string and id off the stack and print it as hottext. */
-void CTigVM::printHot() {
-	int id = stack.pop().getIntValue();
-	std::string text = stack.pop().getStringValue();
-	writeHotText(text, id);
-}
-
 
 /** Record the following option for later processing. */
 void CTigVM::option() {
@@ -330,7 +322,11 @@ void CTigVM::returnOp() {
 	pc = stack.pop().getIntValue();
 }
 
-
+/** Pass on text identified as hot for the user to do something with. */
+void CTigVM::hot() {
+	std::string text = readString();
+	hotText(text, readWord());
+}
 
 
 
@@ -419,4 +415,5 @@ void CTigVM::ObjMessage(CTigVar & obj, std::string fnName) {
 		//TO DO: calling execute internally is not ideal. Might be better to just
 		//assume execution gets handled by the caller.
 	}
+	//status = vmEnding;
 }

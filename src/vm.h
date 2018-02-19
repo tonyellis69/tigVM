@@ -79,13 +79,14 @@ public:
 	void pushObj();
 	void call();
 	void returnOp();
+	void hot();
 
 	TVMstatus getStatus();
 	void getOptionStrs(std::vector<std::string>& optionStrs);
 	void sendMessage(const TVMmsg& msg);
 	virtual void writeText(std::string& text) {};
-	virtual void writeHotText(std::string& text, int id) {};
-
+	virtual void hotText(std::string& text, int memberId) {};
+	
 	CTigVar getGlobalVar(std::string varName);
 	CTigVar getMember(CTigVar& obj, std::string fnName);
 
