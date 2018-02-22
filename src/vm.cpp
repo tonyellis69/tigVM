@@ -381,14 +381,20 @@ CTigVar CTigVM::getGlobalVar(std::string varName) {
 	return var;
 }
 
-/** Return a copy of the the named member. */
+/** Return a copy of the identified member. */
+CTigVar CTigVM::getMember(CTigVar & obj, int memberId) {
+	return objects[obj.getObjId()].members[memberId];
+}
+
+
+/** Return a copy of the named member. */
 CTigVar CTigVM::getMember(CTigVar & obj, std::string fnName) {
 	int memberNo = getMemberId(fnName);
 	return objects[obj.getObjId()].members[memberNo];
 }
 
 /** Return the member id of the named member. */
-int CTigVM::getMemberId(std::string& name) {
+int CTigVM::getMemberId(std::string name) {
 	auto it = find_if(memberNames.begin(), memberNames.end(),
 		[&](std::string& currentName) { return currentName == name; });
 
@@ -400,20 +406,31 @@ int CTigVM::getMemberId(std::string& name) {
 	return it - memberNames.begin() + memberIdStart;
 }
 
+
+/** Execute the identified object member. */
+void CTigVM::ObjMessage(CTigVar & obj, int memberId) {
+	CTigVar member = getMember(obj, memberId);
+	executeObjMember(member);
+}
+
 /** Execute the named object member. */
 void CTigVM::ObjMessage(CTigVar & obj, std::string fnName) {
 	CTigVar member = getMember(obj, fnName);
-	if (member.type == tigString) { //or int or float 
-		writeText(member.getStringValue());
+	executeObjMember(member);
+}
+
+void CTigVM::executeObjMember(CTigVar & ObjMember) {
+	if (ObjMember.type == tigString) { //or int or float 
+		writeText(ObjMember.getStringValue());
 		return;
 	}
-	if (member.type == tigFunc) {
+	if (ObjMember.type == tigFunc) {
 		stack.push(pc); //because return from function pulls call address from stack
-		pc = member.getFuncAddress();
+		pc = ObjMember.getFuncAddress();
 		status = vmExecuting;
 		execute();
 		//TO DO: calling execute internally is not ideal. Might be better to just
 		//assume execution gets handled by the caller.
 	}
-	//status = vmEnding;
+
 }

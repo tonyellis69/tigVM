@@ -88,11 +88,12 @@ public:
 	virtual void hotText(std::string& text, int memberId) {};
 	
 	CTigVar getGlobalVar(std::string varName);
+	CTigVar getMember(CTigVar & obj, int memberId);
 	CTigVar getMember(CTigVar& obj, std::string fnName);
-
-	int getMemberId(std::string & name);
-
+	int getMemberId(std::string  name);
+	void ObjMessage(CTigVar & obj, int memberId);
 	void ObjMessage(CTigVar & obj, std::string fnName);
+	void executeObjMember(CTigVar & ObjMember);
 
 	int progBufSize;
 	char* progBuf; 
