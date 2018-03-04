@@ -2,8 +2,15 @@
 
 #include <string>
 #include <memory>
+#include <vector>
 
 #include "..\..\TC\src\sharedTypes.h"
+
+class CTigVar;
+class CArray {
+public:
+	std::vector<CTigVar> elements;
+};
 
 /** A class encapsulationg the Tig dynamic data type, which can be a string, float, int, etc. */
 class CTigVar {
@@ -15,6 +22,7 @@ public:
 	void setIntValue(int n);
 	void setObjId(int id);
 	void setFuncAddr(int addr);
+	void setArray(CArray& array);
 	std::string getStringValue();
 	int getIntValue();
 	int getFuncAddress();
@@ -29,5 +37,5 @@ public:
 		float floatValue;
 		int funcAddress;
 	};
-
+	CArray* pArray;
 };

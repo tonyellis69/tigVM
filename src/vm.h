@@ -33,6 +33,8 @@ public:
 	std::map<int, CTigVar> members;
 };
 
+
+
 enum TVMmsgType { vmMsgChoice, vmMsgString };
 struct TVMmsg {
 	TVMmsgType type;
@@ -42,6 +44,7 @@ struct TVMmsg {
 
 enum TVMstatus { vmExecuting, vmAwaitChoice, vmAwaitString, vmEnding, vmError, vmNoProgram,
 	vmEof};
+
 
 /** The Tig virtual machine. Reads compiled Tig code and executes it. */
 class CTigVM {
@@ -66,7 +69,6 @@ public:
 	void pushStr();
 	void pushVar();
 	void print();
-	void printHot();
 	void option();
 	void giveOptions();
 	void end();
@@ -80,6 +82,10 @@ public:
 	void call();
 	void returnOp();
 	void hot();
+	void initArray();
+	void pushElem();
+	void assignElem();
+
 
 	TVMstatus getStatus();
 	void getOptionStrs(std::vector<std::string>& optionStrs);

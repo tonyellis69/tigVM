@@ -6,7 +6,7 @@
 using namespace std;
 
 CTigVM::CTigVM() {
-	escape = false; 
+	escape = false;
 	time(&currentTime);
 	status = vmNoProgram;
 }
@@ -31,7 +31,7 @@ bool CTigVM::loadProgFile(std::string filename) {
 	readGlobalVarTable(progFile);
 	readObjectDefTable(progFile);
 	readMemberNameTable(progFile);
-	
+
 	pc = globalCodeAddr;
 	if (eventTable.size()) //assumes first event is the starting event
 		pc = eventTable[0].address;
@@ -108,6 +108,38 @@ void CTigVM::readObjectDefTable(std::ifstream & progFile) {
 			case tigUndefined:
 				progFile.read((char*)&intValue, 4); //can just throw this away
 				break;
+			case tigArray:
+				unsigned int arraySize;
+				progFile.read((char*)&arraySize, 4);
+				if (arraySize > 0) {
+					blank.pArray = new CArray(); //TO DO: use shared_ptr
+					blank.type = tigArray;
+					blank.pArray->elements.resize(arraySize);
+					for (auto &element : blank.pArray->elements) {
+						char ec; 
+						progFile.read(&ec, 1);
+						TigVarType elemType = (TigVarType)ec; std::string strBuf;
+						switch (elemType) {
+						case tigString:
+							unsigned int strSize;
+							progFile.read((char*)&strSize, 4);
+							strBuf.resize(strSize);
+							progFile.read(&strBuf[0], strSize);
+							element.setStringValue(strBuf); break;
+						case tigInt:
+							progFile.read((char*)&intValue, 4);
+							element.setIntValue(intValue); break;
+						case tigObj:
+							progFile.read((char*)&intValue, 4);
+							element.setObjId(intValue); break;
+						case tigUndefined:
+							progFile.read((char*)&intValue, 4); //can just throw this away
+							break;
+						}
+					}
+
+				}
+				break;
 			}
 			object.members[memberId] = blank;
 		}
@@ -130,24 +162,28 @@ void CTigVM::execute() {
 	escape = false;
 	while (pc < progBufSize && status == vmExecuting) {
 		int opCode = readNextOp();
-		switch(opCode) {
-			case opPushInt: pushInt(); break;
-			case opPushStr: pushStr(); break;
-			case opPushVar: pushVar(); break;
-			case opPrint : print(); break;
-			case opOption: option(); break;
-			case opEnd: end(); break;
-			case opAssign: assign(); break;
-			case opGetString: getString(); break;
-			case opAdd: add(); break;
-			case opGiveOptions: giveOptions(); break;
-			case opJumpEvent: jumpEvent(); break;
-			case opStartTimer: startTimer(); break;
-			case opTimedEvent: createTimedEvent(); break;
-			case opPushObj:	pushObj(); break;
-			case opCall: call(); break;
-			case opReturn: returnOp(); break;
-			case opHot: hot(); break;
+		switch (opCode) {
+		case opPushInt: pushInt(); break;
+		case opPushStr: pushStr(); break;
+		case opPushVar: pushVar(); break;
+		case opPrint: print(); break;
+		case opOption: option(); break;
+		case opEnd: end(); break;
+		case opAssign: assign(); break;
+		case opGetString: getString(); break;
+		case opAdd: add(); break;
+		case opGiveOptions: giveOptions(); break;
+		case opJumpEvent: jumpEvent(); break;
+		case opStartTimer: startTimer(); break;
+		case opTimedEvent: createTimedEvent(); break;
+		case opPushObj:	pushObj(); break;
+		case opCall: call(); break;
+		case opReturn: returnOp(); break;
+		case opHot: hot(); break;
+		case opInitArray: initArray(); break;
+		case opPushElem: pushElem(); break;
+		case opAssignElem: assignElem(); break;
+
 		}
 	}
 	if (pc >= progBufSize)
@@ -247,24 +283,32 @@ void CTigVM::end() {
 
 /** Pop a value off the stack and assign it to a (global) variable. */
 void CTigVM::assign() {
-	CTigVar value = stack.pop(); 
+	CTigVar value = stack.pop();
 
 	CTigVar var = stack.pop();
-	if (var.type == tigObj) {
-		std::cout << "\nError! Attempt to assign a value to an object.";
-		escape = true;
-		status = vmError;
-		return;
-	}
+
 	int varId = var.getIntValue();
 
-
-	if (varId < memberIdStart)
-		globalVars[varId] = value;
-	else { // it's an object member id
-		int objectId = stack.pop().getIntValue();
-		objects[objectId].members[varId] = value;
+	if (varId < memberIdStart) {
+		if (globalVars[varId].type == tigArray) {
+			int index = stack.pop().getIntValue();
+			globalVars[varId].pArray->elements[index] = value;
+		}
+		else
+			globalVars[varId] = value;
+		return;
 	}
+
+	// variable is an object member 
+	int objectId = stack.pop().getIntValue();
+	if (objects[objectId].members[varId].type == tigArray) {
+		int index = stack.pop().getIntValue();
+		//globalVars[varId].pArray->elements[index] = value;
+		objects[objectId].members[varId].pArray->elements[index] = value;
+	}
+	else
+		objects[objectId].members[varId] = value;
+
 }
 
 /** Go into 'awaiting string from user' mode. */
@@ -287,7 +331,7 @@ void CTigVM::add() {
 /** Jump execution to the following event, never to return. */
 void CTigVM::jumpEvent() {
 	int eventId = readWord();
-	pc = eventTable[eventId ].address;
+	pc = eventTable[eventId].address;
 }
 
 /** Start the daemon timer counting up from zero in seconds. */
@@ -326,6 +370,54 @@ void CTigVM::returnOp() {
 void CTigVM::hot() {
 	std::string text = readString();
 	hotText(text, readWord());
+}
+
+/** Initialise an array structure, leaving a Tig value referencing it on the stack. */
+void CTigVM::initArray() {
+	CTigVar newArray;
+	newArray.type = tigArray;
+	newArray.pArray = new CArray(); //TO DO: use shared_ptr
+	int arraySize = readWord();
+	newArray.pArray->elements.resize(arraySize);
+	for (auto &element : newArray.pArray->elements) {
+		TigVarType type = (TigVarType)readByte();
+		switch (type) {
+		case tigString:
+			element.setStringValue(readString()); break;
+		case tigInt:
+			element.setIntValue(readWord()); break;
+		case tigObj:
+			element.setObjId(readWord()); break;
+		case tigUndefined:
+			readWord(); //can just throw this away
+			break;
+		}
+	}
+	stack.push(newArray);
+}
+
+/** Push the value in given array element onto the stack for further processing. */
+void CTigVM::pushElem() {
+	int varId = stack.pop().getIntValue();
+	int index = stack.pop().getIntValue();
+
+	CTigVar arrayVar;
+
+	if (varId < memberIdStart) {
+		arrayVar = globalVars[varId];
+		stack.push(arrayVar.pArray->elements[index]);
+	}
+	else {
+		int objId = index;
+		index = stack.pop().getIntValue();
+		stack.push(objects[objId].members[varId].pArray->elements[index]);
+	}
+
+}
+
+/** Assign the value on the stack to the array address also on the stack. */
+void CTigVM::assignElem() {
+
 }
 
 
@@ -373,7 +465,7 @@ struct find_varName {
 /** Return the value of the named global variable, if found. */
 CTigVar CTigVM::getGlobalVar(std::string varName) {
 	//auto it = find_if(globalVarNameTable.begin(), globalVarNameTable.end(), find_varName(varName));
-	auto it = find_if(globalVarNameTable.begin(), globalVarNameTable.end(), 
+	auto it = find_if(globalVarNameTable.begin(), globalVarNameTable.end(),
 		[&](TGlobalVarNameRec& nameRec) { return nameRec.name == varName; });
 	CTigVar var;
 	if (it != globalVarNameTable.end())
