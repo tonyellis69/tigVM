@@ -71,6 +71,8 @@ void CTigVM::readGlobalVarTable(std::ifstream & progFile) {
 
 /** Read the progfile object defintions and create an object for each one. */
 void CTigVM::readObjectDefTable(std::ifstream & progFile) {
+	CObjInstance zeroObject;
+	objects[0] = zeroObject;
 	int objectDefTableSize; char nMembers;
 	progFile.read((char*)&objectDefTableSize, 4);
 	for (int objNo = 0; objNo < objectDefTableSize; objNo++) {

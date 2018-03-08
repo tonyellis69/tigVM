@@ -27,7 +27,7 @@ struct TGlobalVarNameRec {
 
 class CObjInstance {
 public:
-	CObjInstance() {};
+	CObjInstance() { id = 0; classId = 0; };
 	int id;
 	int classId;
 	std::map<int, CTigVar> members;
