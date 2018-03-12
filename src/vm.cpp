@@ -480,6 +480,10 @@ CTigVar CTigVM::getMember(CTigVar & obj, int memberId) {
 	return objects[obj.getObjId()].members[memberId];
 }
 
+/** Return a copy of the identified member. */
+CTigVar CTigVM::getMember(int objNo, int memberId) {
+	return objects[objNo].members[memberId];
+}
 
 /** Return a copy of the named member. */
 CTigVar CTigVM::getMember(CTigVar & obj, std::string fnName) {
@@ -507,11 +511,24 @@ void CTigVM::ObjMessage(CTigVar & obj, int memberId) {
 	executeObjMember(member);
 }
 
+void CTigVM::ObjMessage(int objNo, int memberId) {
+	CTigVar member = getMember(objNo, memberId);
+	executeObjMember(member);
+}
+
+void CTigVM::ObjMessage(int objNo, std::string fnName) {
+	int memberNo = getMemberId(fnName);
+	CTigVar member = getMember(objNo, memberNo);
+	executeObjMember(member);
+}
+
 /** Execute the named object member. */
 void CTigVM::ObjMessage(CTigVar & obj, std::string fnName) {
 	CTigVar member = getMember(obj, fnName);
 	executeObjMember(member);
 }
+
+
 
 void CTigVM::executeObjMember(CTigVar & ObjMember) {
 	if (ObjMember.type == tigString) { //or int or float 
@@ -526,5 +543,12 @@ void CTigVM::executeObjMember(CTigVar & ObjMember) {
 		//TO DO: calling execute internally is not ideal. Might be better to just
 		//assume execution gets handled by the caller.
 	}
+}
 
+/** Return the given member value as an int. */
+int CTigVM::getMemberValue(int objNo, int memberId) {
+	CObjInstance* obj = &objects[objNo];
+	if (obj->members.find(memberId) == obj->members.end())
+		return 0;
+	return obj->members[memberId].getIntValue();
 }

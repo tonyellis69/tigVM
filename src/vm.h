@@ -95,11 +95,16 @@ public:
 	
 	CTigVar getGlobalVar(std::string varName);
 	CTigVar getMember(CTigVar & obj, int memberId);
+	CTigVar getMember(int objNo, int memberId);
 	CTigVar getMember(CTigVar& obj, std::string fnName);
 	int getMemberId(std::string  name);
 	void ObjMessage(CTigVar & obj, int memberId);
+	void ObjMessage(int objNo, int memberId);
+	void ObjMessage(int objNo, std::string fnName);
 	void ObjMessage(CTigVar & obj, std::string fnName);
 	void executeObjMember(CTigVar & ObjMember);
+
+	int getMemberValue(int objNo,int memberId);
 
 	int progBufSize;
 	char* progBuf; 
