@@ -10,6 +10,7 @@ void CVMapp::setApp(CBaseApp * app) {
 void CVMapp::writeText(std::string & text) {
 	TvmAppMsg msg;
 	msg.type = appWriteText;
+	//TO DO: hot text mode causes a different msg, so app handles text differently?
 	msg.text = text;
 	pApp->vmMessage(msg);
 }

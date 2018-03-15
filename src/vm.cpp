@@ -472,6 +472,8 @@ CTigVar CTigVM::getGlobalVar(std::string varName) {
 	CTigVar var;
 	if (it != globalVarNameTable.end())
 		var = globalVars[it->id];
+	else
+		std::cerr << "\nGlobal variable" + varName + " not found!";
 	return var;
 }
 
