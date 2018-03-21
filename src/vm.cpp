@@ -33,8 +33,8 @@ bool CTigVM::loadProgFile(std::string filename) {
 	readMemberNameTable(progFile);
 
 	pc = globalCodeAddr;
-	if (eventTable.size()) //assumes first event is the starting event
-		pc = eventTable[0].address;
+//	if (eventTable.size()) //assumes first event is the starting event
+	//	pc = eventTable[0].address;
 	status = vmExecuting;
 	return true;
 }
@@ -248,8 +248,11 @@ void CTigVM::pushStr() {
 /** Push the value from a global variable (or member) onto the stack. */
 void CTigVM::pushVar() {
 	int varId = readWord();
-	if (varId < memberIdStart)
+	if (varId < memberIdStart) {
+		if (varId >= 100)
+			varId -= 100;
 		stack.push(globalVars[varId]);
+	}
 	else {
 		int objectId = stack.pop().getIntValue();
 		stack.push(objects[objectId].members[varId]);
@@ -291,7 +294,14 @@ void CTigVM::assign() {
 
 	int varId = var.getIntValue();
 
-	if (varId < memberIdStart) {
+	if (varId < globalVarStart) {
+		stack.local(varId) = value;
+		return;
+	}
+
+
+	if (varId < memberIdStart && varId >= globalVarStart) {
+		varId -= 100;
 		if (globalVars[varId].type == tigArray) {
 			int index = stack.pop().getIntValue();
 			globalVars[varId].pArray->elements[index] = value;
@@ -359,13 +369,17 @@ void CTigVM::pushObj() {
 /** Exectute the member function currently on the stack. */
 void CTigVM::call() {
 	int addr = stack.pop().getFuncAddress();
-	stack.push(pc);
+	stack.push(pc); //save return address
 	pc = addr;
+	int varCount = readByte();
+	stack.reserveLocalVars(varCount);
 }
 
-/** Transfer execution to the address at the top of the stack. */
+/** Return execution to the calling address left on the stack. */
 void CTigVM::returnOp() {
-	pc = stack.pop().getIntValue();
+	int localVarCount = stack.pop().getIntValue();
+	stack.freeLocalVars(localVarCount);
+	pc = stack.pop().getIntValue(); //get calling address
 }
 
 /** Pass on text identified as hot for the user to do something with. */

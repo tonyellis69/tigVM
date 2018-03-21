@@ -39,3 +39,21 @@ CTigVar CStack::pop() {
 	stack.pop_back();
 	return word;
 }
+
+/** Reserve space for the current frame's local variables. */
+void CStack::reserveLocalVars(int varCount) {
+	CTigVar currentLocalVarStart(localVarStart);
+	stack.push_back(currentLocalVarStart);
+	if (varCount > 0) {
+		localVarStart = stack.size();
+		stack.resize(stack.size() + varCount);
+	}
+	CTigVar varCountRef(varCount);
+	stack.push_back(varCountRef);
+}
+
+/** Free space reserved for local variables. */
+void CStack::freeLocalVars(int varCount) {
+	stack.resize(stack.size() - varCount);
+	localVarStart = pop().getIntValue();
+}

@@ -15,8 +15,8 @@ public:
 /** A class encapsulationg the Tig dynamic data type, which can be a string, float, int, etc. */
 class CTigVar {
 public:
-	CTigVar() { intValue = 0; floatValue = 0.0; funcAddress = 0;
-	type = tigUndefined; };
+	CTigVar() { intValue = 0; floatValue = 0.0; funcAddress = 0; type = tigUndefined; }
+	CTigVar(int intVal) { setIntValue(intVal); }
 	//~CTigVar() {};
 	void setStringValue(std::string& string);
 	void setIntValue(int n);
@@ -37,5 +37,5 @@ public:
 		float floatValue;
 		int funcAddress;
 	};
-	CArray* pArray;
+	CArray* pArray; //TO DO: needs to be shared pointer!
 };
