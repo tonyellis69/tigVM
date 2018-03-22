@@ -181,6 +181,7 @@ void CTigVM::execute() {
 		case opPushObj:	pushObj(); break;
 		case opCall: call(); break;
 		case opReturn: returnOp(); break;
+		case opReturnVal: returnVal(); break;
 		case opHot: hot(); break;
 		case opInitArray: initArray(); break;
 		case opPushElem: pushElem(); break;
@@ -249,9 +250,14 @@ void CTigVM::pushStr() {
 void CTigVM::pushVar() {
 	int varId = readWord();
 	if (varId < memberIdStart) {
-		if (varId >= 100)
-			varId -= 100;
-		stack.push(globalVars[varId]);
+		if (varId >= globalVarStart) {
+			varId -= globalVarStart;
+			stack.push(globalVars[varId]);
+		}
+		else {
+			stack.push(stack.local(varId));
+
+		}
 	}
 	else {
 		int objectId = stack.pop().getIntValue();
@@ -380,6 +386,15 @@ void CTigVM::returnOp() {
 	int localVarCount = stack.pop().getIntValue();
 	stack.freeLocalVars(localVarCount);
 	pc = stack.pop().getIntValue(); //get calling address
+}
+
+/** Return execution to the calling address left on the stack, leaving the current top value at the top. */
+void CTigVM::returnVal() {
+	CTigVar value = stack.pop();
+	int localVarCount = stack.pop().getIntValue();
+	stack.freeLocalVars(localVarCount);
+	pc = stack.pop().getIntValue(); //get calling address
+	stack.push(value);
 }
 
 /** Pass on text identified as hot for the user to do something with. */

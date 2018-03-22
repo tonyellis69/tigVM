@@ -81,6 +81,7 @@ public:
 	void pushObj();
 	void call();
 	void returnOp();
+	void returnVal();
 	void hot();
 	void initArray();
 	void pushElem();

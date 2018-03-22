@@ -16,6 +16,7 @@ public:
 	CTigVar& top();
 	CTigVar pop();
 	CTigVar& local(int var) { return stack[localVarStart + var]; }
+	
 
 	void reserveLocalVars(int varCount);
 	void freeLocalVars(int varCount);
