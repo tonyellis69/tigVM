@@ -181,7 +181,7 @@ void CTigVM::execute() {
 		case opPushObj:	pushObj(); break;
 		case opCall: call(); break;
 		case opReturn: returnOp(); break;
-		case opReturnVal: returnVal(); break;
+		case opReturnTrue: returnTrue(); break;
 		case opHot: hot(); break;
 		case opInitArray: initArray(); break;
 		case opPushElem: pushElem(); break;
@@ -372,7 +372,7 @@ void CTigVM::pushObj() {
 	stack.pushObj(objId);
 }
 
-/** Exectute the member function currently on the stack. */
+/** Execute the member function currently on the stack, leaving the returned value on the stack. */
 void CTigVM::call() {
 	int addr = stack.pop().getFuncAddress();
 	stack.push(pc); //save return address
@@ -381,20 +381,22 @@ void CTigVM::call() {
 	stack.reserveLocalVars(varCount);
 }
 
-/** Return execution to the calling address left on the stack. */
-void CTigVM::returnOp() {
-	int localVarCount = stack.pop().getIntValue();
-	stack.freeLocalVars(localVarCount);
-	pc = stack.pop().getIntValue(); //get calling address
-}
 
 /** Return execution to the calling address left on the stack, leaving the current top value at the top. */
-void CTigVM::returnVal() {
+void CTigVM::returnOp() {
 	CTigVar value = stack.pop();
 	int localVarCount = stack.pop().getIntValue();
 	stack.freeLocalVars(localVarCount);
 	pc = stack.pop().getIntValue(); //get calling address
 	stack.push(value);
+}
+
+/** Return execution to the calling address left on the stack, leaving 1 at the top. */
+void CTigVM::returnTrue() {
+	int localVarCount = stack.pop().getIntValue();
+	stack.freeLocalVars(localVarCount);
+	pc = stack.pop().getIntValue(); //get calling address
+	stack.push(1);
 }
 
 /** Pass on text identified as hot for the user to do something with. */
