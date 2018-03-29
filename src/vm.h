@@ -99,11 +99,11 @@ public:
 	CTigVar getMember(int objNo, int memberId);
 	CTigVar getMember(CTigVar& obj, std::string fnName);
 	int getMemberId(std::string  name);
-	void ObjMessage(CTigVar & obj, int memberId);
-	void ObjMessage(int objNo, int memberId);
-	void ObjMessage(int objNo, std::string fnName);
-	void ObjMessage(CTigVar & obj, std::string fnName);
-	void executeObjMember(CTigVar & ObjMember);
+	CTigVar ObjMessage(CTigVar & obj, int memberId);
+	CTigVar ObjMessage(int objNo, int memberId);
+	CTigVar ObjMessage(int objNo, std::string fnName);
+	CTigVar ObjMessage(CTigVar & obj, std::string fnName);
+	CTigVar executeObjMember(CTigVar & ObjMember);
 
 	int getMemberValue(int objNo,int memberId);
 

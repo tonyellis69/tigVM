@@ -502,7 +502,7 @@ CTigVar CTigVM::getGlobalVar(std::string varName) {
 		[&](TGlobalVarNameRec& nameRec) { return nameRec.name == varName; });
 	CTigVar var;
 	if (it != globalVarNameTable.end())
-		var = globalVars[it->id];
+		var = globalVars[it->id - globalVarStart];
 	else
 		std::cerr << "\nGlobal variable" + varName + " not found!";
 	return var;
@@ -539,40 +539,45 @@ int CTigVM::getMemberId(std::string name) {
 
 
 /** Execute the identified object member. */
-void CTigVM::ObjMessage(CTigVar & obj, int memberId) {
+CTigVar CTigVM::ObjMessage(CTigVar & obj, int memberId) {
 	CTigVar member = getMember(obj, memberId);
-	executeObjMember(member);
+	return executeObjMember(member);
 }
 
-void CTigVM::ObjMessage(int objNo, int memberId) {
+CTigVar CTigVM::ObjMessage(int objNo, int memberId) {
 	CTigVar member = getMember(objNo, memberId);
-	executeObjMember(member);
+	return executeObjMember(member);
 }
 
-void CTigVM::ObjMessage(int objNo, std::string fnName) {
+CTigVar CTigVM::ObjMessage(int objNo, std::string fnName) {
 	int memberNo = getMemberId(fnName);
 	CTigVar member = getMember(objNo, memberNo);
-	executeObjMember(member);
+	return executeObjMember(member);
 }
 
 /** Execute the named object member. */
-void CTigVM::ObjMessage(CTigVar & obj, std::string fnName) {
+CTigVar CTigVM::ObjMessage(CTigVar & obj, std::string fnName) {
 	CTigVar member = getMember(obj, fnName);
-	executeObjMember(member);
+	return executeObjMember(member);
 }
 
 
 
-void CTigVM::executeObjMember(CTigVar & ObjMember) {
+CTigVar CTigVM::executeObjMember(CTigVar & ObjMember) {
 	if (ObjMember.type == tigString) { //or int or float 
-		writeText(ObjMember.getStringValue());
-		return;
+		//writeText(ObjMember.getStringValue());
+		return ObjMember;
 	}
 	if (ObjMember.type == tigFunc) {
-		stack.push(pc); //because return from function pulls call address from stack
-		pc = ObjMember.getFuncAddress();
+
+		int addr = ObjMember.getFuncAddress();
+		stack.push(pc); //save return address
+		pc = addr;
+		int varCount = readByte();
+		stack.reserveLocalVars(varCount);
 		status = vmExecuting;
 		execute();
+		return stack.pop();
 		//TO DO: calling execute internally is not ideal. Might be better to just
 		//assume execution gets handled by the caller.
 	}
