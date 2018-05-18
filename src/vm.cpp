@@ -539,24 +539,24 @@ int CTigVM::getMemberId(std::string name) {
 
 
 /** Execute the identified object member. */
-CTigVar CTigVM::ObjMessage(CTigVar & obj, int memberId) {
+CTigVar CTigVM::objMessage(CTigVar & obj, int memberId) {
 	CTigVar member = getMember(obj, memberId);
 	return executeObjMember(member);
 }
 
-CTigVar CTigVM::ObjMessage(int objNo, int memberId) {
+CTigVar CTigVM::objMessage(int objNo, int memberId) {
 	CTigVar member = getMember(objNo, memberId);
 	return executeObjMember(member);
 }
 
-CTigVar CTigVM::ObjMessage(int objNo, std::string fnName) {
+CTigVar CTigVM::objMessage(int objNo, std::string fnName) {
 	int memberNo = getMemberId(fnName);
 	CTigVar member = getMember(objNo, memberNo);
 	return executeObjMember(member);
 }
 
 /** Execute the named object member. */
-CTigVar CTigVM::ObjMessage(CTigVar & obj, std::string fnName) {
+CTigVar CTigVM::objMessage(CTigVar & obj, std::string fnName) {
 	CTigVar member = getMember(obj, fnName);
 	return executeObjMember(member);
 }
@@ -581,6 +581,11 @@ CTigVar CTigVM::executeObjMember(CTigVar & ObjMember) {
 		//TO DO: calling execute internally is not ideal. Might be better to just
 		//assume execution gets handled by the caller.
 	}
+	return ObjMember; //This may not be the best default action...
+}
+
+std::string CTigVM::getMemberName(int memberId) {
+	return memberNames[memberId - memberIdStart];
 }
 
 /** Return the given member value as an int. */
@@ -589,4 +594,14 @@ int CTigVM::getMemberValue(int objNo, int memberId) {
 	if (obj->members.find(memberId) == obj->members.end())
 		return 0;
 	return obj->members[memberId].getIntValue();
+}
+
+/** Return the class of the given object.*/
+int CTigVM::getClass(int objNo) {
+	return objects[objNo].classId;
+}
+
+int CTigVM::getObjectId(std::string objName)
+{
+	return 0;
 }

@@ -99,13 +99,15 @@ public:
 	CTigVar getMember(int objNo, int memberId);
 	CTigVar getMember(CTigVar& obj, std::string fnName);
 	int getMemberId(std::string  name);
-	CTigVar ObjMessage(CTigVar & obj, int memberId);
-	CTigVar ObjMessage(int objNo, int memberId);
-	CTigVar ObjMessage(int objNo, std::string fnName);
-	CTigVar ObjMessage(CTigVar & obj, std::string fnName);
+	CTigVar objMessage(CTigVar & obj, int memberId);
+	CTigVar objMessage(int objNo, int memberId);
+	CTigVar objMessage(int objNo, std::string fnName);
+	CTigVar objMessage(CTigVar & obj, std::string fnName);
 	CTigVar executeObjMember(CTigVar & ObjMember);
-
+	std::string getMemberName(int memberId);
 	int getMemberValue(int objNo,int memberId);
+	int getClass(int objNo);
+	int getObjectId(std::string objName);
 
 	int progBufSize;
 	char* progBuf; 
