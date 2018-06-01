@@ -25,6 +25,7 @@ public:
 	void setArray(CArray& array);
 	std::string getStringValue();
 	int getIntValue();
+	float getFloatValue();
 	int getFuncAddress();
 	int getObjId();
 

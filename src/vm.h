@@ -86,7 +86,7 @@ public:
 	void initArray();
 	void pushElem();
 	void assignElem();
-
+	void compEq();
 
 	TVMstatus getStatus();
 	void getOptionStrs(std::vector<std::string>& optionStrs);

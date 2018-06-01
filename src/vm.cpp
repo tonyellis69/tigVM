@@ -186,6 +186,7 @@ void CTigVM::execute() {
 		case opInitArray: initArray(); break;
 		case opPushElem: pushElem(); break;
 		case opAssignElem: assignElem(); break;
+		case opEq: compEq(); break;
 
 		}
 	}
@@ -450,7 +451,31 @@ void CTigVM::pushElem() {
 
 /** Assign the value on the stack to the array address also on the stack. */
 void CTigVM::assignElem() {
+	//TO DO: what happened here? Do I do this elsewhere? Investigate
+}
 
+/** Compare the top 2 values on the stack for equality. */
+void CTigVM::compEq() {
+	CTigVar op2 = stack.pop();
+	CTigVar op1 = stack.pop();
+	int result = 0;
+	if (op1.type == tigInt && op2.type == tigInt) {
+		result = op1.getIntValue() == op1.getIntValue();
+	}
+	else if (op1.type == tigInt && op2.type == tigFloat) {
+		result = op1.getIntValue() == op1.getFloatValue();
+	}
+	else if (op1.type == tigFloat && op2.type == tigInt) {
+		result = op1.getFloatValue() == op1.getIntValue();
+	}
+	else if (op1.type == tigFloat && op2.type == tigFloat) {
+		result = op1.getFloatValue() == op1.getFloatValue();
+	} 
+	if (op1.type == tigString && op2.type == tigString) {
+		result = op1.getStringValue() == op1.getStringValue();
+	}
+
+	stack.push(result);
 }
 
 

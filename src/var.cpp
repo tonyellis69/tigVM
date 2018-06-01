@@ -33,6 +33,10 @@ int CTigVar::getIntValue() {
 	return intValue;
 }
 
+float CTigVar::getFloatValue() {
+	return floatValue;
+}
+
 int CTigVar::getFuncAddress() {
 	return funcAddress;
 }
