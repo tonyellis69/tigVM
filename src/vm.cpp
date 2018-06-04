@@ -187,6 +187,8 @@ void CTigVM::execute() {
 		case opPushElem: pushElem(); break;
 		case opAssignElem: assignElem(); break;
 		case opEq: compEq(); break;
+		case opJump: jump(); break;
+		case opJumpFalse: jumpFalse(); break;
 
 		}
 	}
@@ -460,22 +462,35 @@ void CTigVM::compEq() {
 	CTigVar op1 = stack.pop();
 	int result = 0;
 	if (op1.type == tigInt && op2.type == tigInt) {
-		result = op1.getIntValue() == op1.getIntValue();
+		result = op1.getIntValue() == op2.getIntValue();
 	}
 	else if (op1.type == tigInt && op2.type == tigFloat) {
-		result = op1.getIntValue() == op1.getFloatValue();
+		result = op1.getIntValue() == op2.getFloatValue();
 	}
 	else if (op1.type == tigFloat && op2.type == tigInt) {
-		result = op1.getFloatValue() == op1.getIntValue();
+		result = op1.getFloatValue() == op2.getIntValue();
 	}
 	else if (op1.type == tigFloat && op2.type == tigFloat) {
-		result = op1.getFloatValue() == op1.getFloatValue();
+		result = op1.getFloatValue() == op2.getFloatValue();
 	} 
-	if (op1.type == tigString && op2.type == tigString) {
-		result = op1.getStringValue() == op1.getStringValue();
+	else if (op1.type == tigString && op2.type == tigString) {
+		result = op1.getStringValue() == op2.getStringValue();
 	}
 
 	stack.push(result);
+}
+
+/** Jump unconditionally. */
+void CTigVM::jump() {
+	pc = readWord();
+}
+
+/** Jump if the top stack value is 0; */
+void CTigVM::jumpFalse() {
+	int result = stack.pop().getIntValue();
+	int addr = readWord();
+	if (result == 0)
+		pc = addr;
 }
 
 

@@ -88,6 +88,9 @@ public:
 	void assignElem();
 	void compEq();
 
+	void jump();
+	void jumpFalse();
+
 	TVMstatus getStatus();
 	void getOptionStrs(std::vector<std::string>& optionStrs);
 	void sendMessage(const TVMmsg& msg);
