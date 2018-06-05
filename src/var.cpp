@@ -25,6 +25,8 @@ std::string CTigVar::getStringValue() {
 		return *pStrValue;
 	if (type == tigInt)
 		return std::to_string(intValue);
+	if (type == tigFloat)
+		return std::to_string(floatValue);
 	setStringValue(std::string( "##Undefined!##"));
 	return *pStrValue;
 }

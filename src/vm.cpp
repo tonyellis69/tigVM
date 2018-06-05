@@ -636,12 +636,24 @@ int CTigVM::getMemberValue(int objNo, int memberId) {
 	return obj->members[memberId].getIntValue();
 }
 
+int CTigVM::getMemberValue(int objNo, std::string memberName) {
+	int memberNo = getMemberId(memberName);
+	return getMember(objNo, memberNo).getIntValue();
+}
+
 /** Return the class of the given object.*/
 int CTigVM::getClass(int objNo) {
 	return objects[objNo].classId;
 }
 
-int CTigVM::getObjectId(std::string objName)
-{
-	return 0;
+
+void CTigVM::setMemberValue(int objNo, std::string memberName, CTigVar & value) {
+	int memberNo = getMemberId(memberName);
+
+	auto it = objects[objNo].members.find(memberNo);
+	if (it != objects[objNo].members.end())
+		it->second = value;
+	else
+		cerr << "\nAttempt to set nonexistent member " << memberName << " in object "
+		<< objNo << " to " << value.getStringValue();
 }

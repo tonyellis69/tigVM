@@ -109,8 +109,11 @@ public:
 	CTigVar executeObjMember(CTigVar & ObjMember);
 	std::string getMemberName(int memberId);
 	int getMemberValue(int objNo,int memberId);
+	int getMemberValue(int objNo, std::string memberName);
 	int getClass(int objNo);
-	int getObjectId(std::string objName);
+
+
+	void setMemberValue(int objNo, std::string memberName, CTigVar& value);
 
 	int progBufSize;
 	char* progBuf; 
