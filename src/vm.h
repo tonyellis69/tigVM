@@ -115,6 +115,8 @@ public:
 
 	void setMemberValue(int objNo, std::string memberName, CTigVar& value);
 
+	bool hasMember(int objNo, int memberNo);
+
 	int progBufSize;
 	char* progBuf; 
 	int pc; ///<Program counter. Points at the next command to execute.

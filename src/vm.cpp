@@ -657,3 +657,11 @@ void CTigVM::setMemberValue(int objNo, std::string memberName, CTigVar & value) 
 		cerr << "\nAttempt to set nonexistent member " << memberName << " in object "
 		<< objNo << " to " << value.getStringValue();
 }
+
+/** Returns true if the object has this member. */
+bool CTigVM::hasMember(int objNo, int memberNo) {
+	if (objects[objNo].members.find(memberNo) == objects[objNo].members.end())
+		return false;
+	return true;
+
+}
