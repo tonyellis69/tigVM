@@ -111,11 +111,13 @@ public:
 	int getMemberValue(int objNo,int memberId);
 	int getMemberValue(int objNo, std::string memberName);
 	int getClass(int objNo);
-
+	bool inheritsFrom(int objId, int classId);
 
 	void setMemberValue(int objNo, std::string memberName, CTigVar& value);
 
 	bool hasMember(int objNo, int memberNo);
+
+
 
 	int progBufSize;
 	char* progBuf; 

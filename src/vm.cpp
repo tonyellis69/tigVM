@@ -646,6 +646,15 @@ int CTigVM::getClass(int objNo) {
 	return objects[objNo].classId;
 }
 
+bool CTigVM::inheritsFrom(int objId, int classId) {
+	while (objects[objId].classId != 0) {
+		if (objects[objId].classId == classId)
+			return true;
+		objId = objects[objId].classId;
+	}
+	return false;
+}
+
 
 void CTigVM::setMemberValue(int objNo, std::string memberName, CTigVar & value) {
 	int memberNo = getMemberId(memberName);
