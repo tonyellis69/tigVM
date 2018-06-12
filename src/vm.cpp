@@ -36,6 +36,7 @@ bool CTigVM::loadProgFile(std::string filename) {
 //	if (eventTable.size()) //assumes first event is the starting event
 	//	pc = eventTable[0].address;
 	status = vmExecuting;
+	currentObject = 0;
 	return true;
 }
 
@@ -252,18 +253,20 @@ void CTigVM::pushStr() {
 /** Push the value from a global variable (or member) onto the stack. */
 void CTigVM::pushVar() {
 	int varId = readWord();
-	if (varId < memberIdStart) {
+	if (varId < memberIdStart) { //global variable
 		if (varId >= globalVarStart) {
 			varId -= globalVarStart;
 			stack.push(globalVars[varId]);
 		}
-		else {
+		else { //local variable
 			stack.push(stack.local(varId));
-
 		}
 	}
-	else {
+	else { //data member
 		int objectId = stack.pop().getIntValue();
+		if (objectId == selfObjId) {
+			objectId = currentObject;
+		}
 		stack.push(objects[objectId].members[varId]);
 	}
 }
@@ -322,9 +325,10 @@ void CTigVM::assign() {
 
 	// variable is an object member 
 	int objectId = stack.pop().getIntValue();
+	if (objectId == selfObjId)
+		objectId = currentObject;
 	if (objects[objectId].members[varId].type == tigArray) {
 		int index = stack.pop().getIntValue();
-		//globalVars[varId].pArray->elements[index] = value;
 		objects[objectId].members[varId].pArray->elements[index] = value;
 	}
 	else
@@ -377,11 +381,30 @@ void CTigVM::pushObj() {
 
 /** Execute the member function currently on the stack, leaving the returned value on the stack. */
 void CTigVM::call() {
+	int obj = stack.pop().getObjId();
+	int memberId = readWord();
+	if (obj == selfObjId)
+		obj = currentObject;
+
+	currentObject = obj;
+	stack.push(currentObject);
+	stack.push(pc); //save return address
+	pc = objects[obj].members[memberId].getFuncAddress();;
+	int varCount = readByte();
+	stack.reserveLocalVars(varCount);
+
+
+	/*
 	int addr = stack.pop().getFuncAddress();
+
+	/////////////////////////////
+	//should retrieve object id here
+
 	stack.push(pc); //save return address
 	pc = addr;
 	int varCount = readByte();
 	stack.reserveLocalVars(varCount);
+	*/
 }
 
 
@@ -391,6 +414,7 @@ void CTigVM::returnOp() {
 	int localVarCount = stack.pop().getIntValue();
 	stack.freeLocalVars(localVarCount);
 	pc = stack.pop().getIntValue(); //get calling address
+	currentObject = stack.pop().getIntValue(); //get calling object
 	stack.push(value);
 }
 
@@ -399,6 +423,7 @@ void CTigVM::returnTrue() {
 	int localVarCount = stack.pop().getIntValue();
 	stack.freeLocalVars(localVarCount);
 	pc = stack.pop().getIntValue(); //get calling address
+	currentObject = stack.pop().getIntValue(); //get calling object
 	stack.push(1);
 }
 
@@ -564,6 +589,11 @@ CTigVar CTigVM::getMember(CTigVar & obj, std::string fnName) {
 	return objects[obj.getObjId()].members[memberNo];
 }
 
+CTigVar CTigVM::getMember(CObjInstance * obj, int memberId) {
+
+	return CTigVar();
+}
+
 /** Return the member id of the named member. */
 int CTigVM::getMemberId(std::string name) {
 	auto it = find_if(memberNames.begin(), memberNames.end(),
@@ -581,23 +611,27 @@ int CTigVM::getMemberId(std::string name) {
 /** Execute the identified object member. */
 CTigVar CTigVM::objMessage(CTigVar & obj, int memberId) {
 	CTigVar member = getMember(obj, memberId);
+	currentObject = obj.getObjId();
 	return executeObjMember(member);
 }
 
 CTigVar CTigVM::objMessage(int objNo, int memberId) {
 	CTigVar member = getMember(objNo, memberId);
+	currentObject = objNo;
 	return executeObjMember(member);
 }
 
 CTigVar CTigVM::objMessage(int objNo, std::string fnName) {
 	int memberNo = getMemberId(fnName);
 	CTigVar member = getMember(objNo, memberNo);
+	currentObject = objNo;
 	return executeObjMember(member);
 }
 
 /** Execute the named object member. */
 CTigVar CTigVM::objMessage(CTigVar & obj, std::string fnName) {
 	CTigVar member = getMember(obj, fnName);
+	currentObject = obj.getObjId();
 	return executeObjMember(member);
 }
 
@@ -611,7 +645,8 @@ CTigVar CTigVM::executeObjMember(CTigVar & ObjMember) {
 	if (ObjMember.type == tigFunc) {
 
 		int addr = ObjMember.getFuncAddress();
-		stack.push(pc); //save return address
+		stack.push(NULL); //dummy calling object
+		stack.push(pc);
 		pc = addr;
 		int varCount = readByte();
 		stack.reserveLocalVars(varCount);
@@ -673,4 +708,21 @@ bool CTigVM::hasMember(int objNo, int memberNo) {
 		return false;
 	return true;
 
+}
+
+CObjInstance * CTigVM::getObject(int objId) {
+	auto found = objects.find(objId);
+	if (found == objects.end())
+		return NULL;
+	return &found->second;
+}
+
+
+
+int CTigVM::getObjectId(CObjInstance * obj) {
+	auto it = find_if(objects.begin(), objects.end(),
+		[&](pair<int,CObjInstance> currentObj) { return currentObj.second.id == obj->id; });
+	if (it == objects.end())
+		return 0;
+	return distance(objects.begin(), it)-1;
 }

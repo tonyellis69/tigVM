@@ -101,6 +101,7 @@ public:
 	CTigVar getMember(CTigVar & obj, int memberId);
 	CTigVar getMember(int objNo, int memberId);
 	CTigVar getMember(CTigVar& obj, std::string fnName);
+	CTigVar getMember(CObjInstance* obj, int memberId);
 	int getMemberId(std::string  name);
 	CTigVar objMessage(CTigVar & obj, int memberId);
 	CTigVar objMessage(int objNo, int memberId);
@@ -117,7 +118,8 @@ public:
 
 	bool hasMember(int objNo, int memberNo);
 
-
+	CObjInstance* getObject(int objId);
+	int getObjectId(CObjInstance* obj);
 
 	int progBufSize;
 	char* progBuf; 
@@ -137,4 +139,6 @@ public:
 
 	time_t currentTime;
 	CDaemon daemon;
+
+	int currentObject; ///<Owner of the function currently being executed.
 };
