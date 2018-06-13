@@ -590,8 +590,7 @@ CTigVar CTigVM::getMember(CTigVar & obj, std::string fnName) {
 }
 
 CTigVar CTigVM::getMember(CObjInstance * obj, int memberId) {
-
-	return CTigVar();
+	return obj->members[memberId];
 }
 
 /** Return the member id of the named member. */
@@ -632,6 +631,13 @@ CTigVar CTigVM::objMessage(int objNo, std::string fnName) {
 CTigVar CTigVM::objMessage(CTigVar & obj, std::string fnName) {
 	CTigVar member = getMember(obj, fnName);
 	currentObject = obj.getObjId();
+	return executeObjMember(member);
+}
+
+CTigVar CTigVM::objMessage(CObjInstance* obj, std::string fnName) {
+	int memberNo = getMemberId(fnName);
+	CTigVar member = getMember(obj, memberNo);
+	currentObject = obj->id;
 	return executeObjMember(member);
 }
 
@@ -690,6 +696,15 @@ bool CTigVM::inheritsFrom(int objId, int classId) {
 	return false;
 }
 
+bool CTigVM::inheritsFrom(CObjInstance* obj, CObjInstance* classObj) {
+	while (obj->classId != 0) {
+		if (obj->classId == classObj->id)
+			return true;
+		obj = &objects[obj->classId];
+	}
+	return false;
+}
+
 
 void CTigVM::setMemberValue(int objNo, std::string memberName, CTigVar & value) {
 	int memberNo = getMemberId(memberName);
@@ -707,7 +722,12 @@ bool CTigVM::hasMember(int objNo, int memberNo) {
 	if (objects[objNo].members.find(memberNo) == objects[objNo].members.end())
 		return false;
 	return true;
+}
 
+bool CTigVM::hasMember(CObjInstance* obj, int memberNo) {
+	if (obj->members.find(memberNo) == obj->members.end())
+		return false;
+	return true;
 }
 
 CObjInstance * CTigVM::getObject(int objId) {

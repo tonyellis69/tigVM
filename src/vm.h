@@ -107,16 +107,19 @@ public:
 	CTigVar objMessage(int objNo, int memberId);
 	CTigVar objMessage(int objNo, std::string fnName);
 	CTigVar objMessage(CTigVar & obj, std::string fnName);
+	CTigVar objMessage(CObjInstance * obj, std::string fnName);
 	CTigVar executeObjMember(CTigVar & ObjMember);
 	std::string getMemberName(int memberId);
 	int getMemberValue(int objNo,int memberId);
 	int getMemberValue(int objNo, std::string memberName);
 	int getClass(int objNo);
 	bool inheritsFrom(int objId, int classId);
+	bool inheritsFrom(CObjInstance * obj, CObjInstance * classObj);
 
 	void setMemberValue(int objNo, std::string memberName, CTigVar& value);
 
 	bool hasMember(int objNo, int memberNo);
+	bool hasMember(CObjInstance * obj, int memberNo);
 
 	CObjInstance* getObject(int objId);
 	int getObjectId(CObjInstance* obj);
