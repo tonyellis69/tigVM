@@ -15,11 +15,12 @@ void CVMapp::writeText(std::string & text) {
 	pApp->vmMessage(msg);
 }
 
-void CVMapp::hotText(std::string & text, int memberId) {
+void CVMapp::hotText(std::string & text, int memberId, int objectId) {
 	TvmAppMsg msg;
 	msg.type = appHotText;
 	msg.text = text;
 	msg.integer = memberId;
+	msg.integer2 = NULL;
 	pApp->vmMessage(msg);
 }
 

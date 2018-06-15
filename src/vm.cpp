@@ -79,10 +79,22 @@ void CTigVM::readObjectDefTable(std::ifstream & progFile) {
 	for (int objNo = 0; objNo < objectDefTableSize; objNo++) {
 		CObjInstance object;
 		progFile.read((char*)&object.id, 4);
-		progFile.read((char*)&object.classId, 4);
-		if (object.classId != -1) {
-			object.members = objects[object.classId].members;
+
+		char noParentClasses;
+		progFile.read((char*)&noParentClasses, 1);
+		for (int parentClass = 0; parentClass < noParentClasses; parentClass++) {
+			int classId;
+			progFile.read((char*)&classId, 4);
+			object.classIds.push_back(classId);
+			for (auto member : objects[classId].members) {
+				object.members[member.first] = member.second;
+			}
 		}
+
+		//progFile.read((char*)&object.classId, 4);
+		//if (object.classId != -1) {
+		//	object.members = objects[object.classId].members;
+	//	}
 
 		progFile.read(&nMembers, 1); int memberId;
 		for (int memberNo = 0; memberNo < nMembers; memberNo++) {
@@ -267,7 +279,13 @@ void CTigVM::pushVar() {
 		if (objectId == selfObjId) {
 			objectId = currentObject;
 		}
-		stack.push(objects[objectId].members[varId]);
+		if (objects[objectId].members.find(varId) == objects[objectId].members.end()) {
+			cerr << "\nError! Attempt to access non-existent member " << varId << " of object " << objectId;
+			stack.pushUndefined();
+		}
+		else
+			stack.push(objects[objectId].members[varId]);
+
 	}
 }
 
@@ -327,6 +345,14 @@ void CTigVM::assign() {
 	int objectId = stack.pop().getIntValue();
 	if (objectId == selfObjId)
 		objectId = currentObject;
+
+	if (objects[objectId].members.find(varId) == objects[objectId].members.end()) {
+		cerr << "\nError! Attempt to assign value " << value.getStringValue() <<
+			" to non-existent member " << varId << " of object " << objectId;
+		return;
+	}
+
+
 	if (objects[objectId].members[varId].type == tigArray) {
 		int index = stack.pop().getIntValue();
 		objects[objectId].members[varId].pArray->elements[index] = value;
@@ -429,8 +455,11 @@ void CTigVM::returnTrue() {
 
 /** Pass on text identified as hot for the user to do something with. */
 void CTigVM::hot() {
+	int obj = stack.pop().getIntValue();
+	if (obj == selfObjId && currentObject != 0)
+		obj = currentObject;
 	std::string text = readString();
-	hotText(text, readWord());
+	hotText(text, readWord(),obj);
 }
 
 /** Initialise an array structure, leaving a Tig value referencing it on the stack. */
@@ -569,7 +598,7 @@ CTigVar CTigVM::getGlobalVar(std::string varName) {
 	if (it != globalVarNameTable.end())
 		var = globalVars[it->id - globalVarStart];
 	else
-		std::cerr << "\nGlobal variable" + varName + " not found!";
+		std::cerr << "\nGlobal variable " + varName + " not found!";
 	return var;
 }
 
@@ -684,23 +713,24 @@ int CTigVM::getMemberValue(int objNo, std::string memberName) {
 
 /** Return the class of the given object.*/
 int CTigVM::getClass(int objNo) {
-	return objects[objNo].classId;
+//	return objects[objNo].classId;
+	return NULL;
 }
 
 bool CTigVM::inheritsFrom(int objId, int classId) {
-	while (objects[objId].classId != 0) {
-		if (objects[objId].classId == classId)
-			return true;
-		objId = objects[objId].classId;
-	}
-	return false;
+	CObjInstance* obj = &objects[objId];
+	CObjInstance* classObj = &objects[classId];
+	return inheritsFrom(obj,classObj);
 }
 
 bool CTigVM::inheritsFrom(CObjInstance* obj, CObjInstance* classObj) {
-	while (obj->classId != 0) {
-		if (obj->classId == classObj->id)
+
+	for (auto currentClass : obj->classIds) {
+		if (currentClass == classObj->id)
 			return true;
-		obj = &objects[obj->classId];
+		CObjInstance* currentClassObj = &objects[currentClass];
+		if (inheritsFrom(currentClassObj, classObj))
+			return true;
 	}
 	return false;
 }

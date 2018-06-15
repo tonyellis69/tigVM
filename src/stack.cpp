@@ -24,6 +24,12 @@ void CStack::pushObj(int id) {
 
 }
 
+void CStack::pushUndefined() {
+	CTigVar fail;
+	fail.type = tigUndefined;
+	stack.push_back(fail);
+}
+
 /** Return the top value on the stack. */
 CTigVar & CStack::top() {
 	return stack.back();

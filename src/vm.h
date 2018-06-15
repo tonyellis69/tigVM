@@ -27,9 +27,9 @@ struct TGlobalVarNameRec {
 
 class CObjInstance {
 public:
-	CObjInstance() { id = 0; classId = 0; };
+	CObjInstance() { id = 0;  };
 	int id;
-	int classId;
+	std::vector<int> classIds;
 	std::map<int, CTigVar> members;
 };
 
@@ -95,7 +95,7 @@ public:
 	void getOptionStrs(std::vector<std::string>& optionStrs);
 	void sendMessage(const TVMmsg& msg);
 	virtual void writeText(std::string& text) {};
-	virtual void hotText(std::string& text, int memberId) {};
+	virtual void hotText(std::string& text, int memberId, int objectId) {};
 	
 	CTigVar getGlobalVar(std::string varName);
 	CTigVar getMember(CTigVar & obj, int memberId);

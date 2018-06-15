@@ -8,6 +8,7 @@ struct TvmAppMsg {
 	TvmAppMsgType type;
 	std::string text;
 	int integer;
+	int integer2;
 };
 
 class CBaseApp;
@@ -17,7 +18,7 @@ public:
 	CVMapp() {};
 	void setApp(CBaseApp* app);
 	void writeText(std::string& text);
-	void hotText(std::string& text, int memberId);
+	void hotText(std::string& text, int memberId, int objectId);
 
 	CBaseApp* pApp; ///<Pointer to the user application.
 };
