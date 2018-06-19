@@ -52,6 +52,7 @@ public:
 	CTigVM();
 	~CTigVM();
 	bool loadProgFile(std::string filename);
+	void initIds();
 	int readHeader(std::ifstream& progFile);
 	void readEventTable(std::ifstream& progFile);
 	void readGlobalVarTable(std::ifstream& progFile);
@@ -87,9 +88,12 @@ public:
 	void pushElem();
 	void assignElem();
 	void compEq();
-
 	void jump();
 	void jumpFalse();
+	void child();
+	void sibling();
+	void getVar();
+
 
 	TVMstatus getStatus();
 	void getOptionStrs(std::vector<std::string>& optionStrs);
@@ -113,7 +117,7 @@ public:
 	int getMemberValue(int objNo,int memberId);
 	int getMemberValue(int objNo, std::string memberName);
 	int getClass(int objNo);
-	bool inheritsFrom(int objId, int classId);
+	bool inheritsFrom(CObjInstance * obj, int classId);
 	bool inheritsFrom(CObjInstance * obj, CObjInstance * classObj);
 
 	void setMemberValue(int objNo, std::string memberName, CTigVar& value);
@@ -144,4 +148,8 @@ public:
 	CDaemon daemon;
 
 	int currentObject; ///<Owner of the function currently being executed.
+	
+	int childId; ///<Member id for the 'child' member
+	int siblingId; ///<Member id for the 'sibling' member
+	int parentId; ///<Member id for the 'parent' member
 };

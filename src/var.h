@@ -17,6 +17,7 @@ class CTigVar {
 public:
 	CTigVar() { intValue = 0; floatValue = 0.0; funcAddress = 0; type = tigUndefined; }
 	CTigVar(int intVal) { setIntValue(intVal); }
+	CTigVar(TigVarType typeVal) { type = typeVal; };
 	//~CTigVar() {};
 	void setStringValue(std::string& string);
 	void setIntValue(int n);

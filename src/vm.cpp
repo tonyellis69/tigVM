@@ -32,12 +32,20 @@ bool CTigVM::loadProgFile(std::string filename) {
 	readObjectDefTable(progFile);
 	readMemberNameTable(progFile);
 
+	initIds();
+
 	pc = globalCodeAddr;
 //	if (eventTable.size()) //assumes first event is the starting event
 	//	pc = eventTable[0].address;
 	status = vmExecuting;
 	currentObject = 0;
 	return true;
+}
+
+void CTigVM::initIds() {
+	childId = getMemberId("child");
+	siblingId = getMemberId("sibling");
+	parentId = getMemberId("parent");
 }
 
 int CTigVM::readHeader(ifstream & progFile) {
@@ -202,7 +210,9 @@ void CTigVM::execute() {
 		case opEq: compEq(); break;
 		case opJump: jump(); break;
 		case opJumpFalse: jumpFalse(); break;
-
+		case opChild: child(); break;
+		case opSibling: sibling(); break;
+		case opGetVar: getVar(); break;
 		}
 	}
 	if (pc >= progBufSize)
@@ -402,6 +412,8 @@ void CTigVM::createTimedEvent() {
 /** Push an object identifier onto the stack. */
 void CTigVM::pushObj() {
 	int objId = readWord();
+	if (objId == selfObjId)
+		objId = currentObject;
 	stack.pushObj(objId);
 }
 
@@ -508,6 +520,7 @@ void CTigVM::pushElem() {
 /** Assign the value on the stack to the array address also on the stack. */
 void CTigVM::assignElem() {
 	//TO DO: what happened here? Do I do this elsewhere? Investigate
+	//apparently I don't use this any more, test
 }
 
 /** Compare the top 2 values on the stack for equality. */
@@ -545,6 +558,48 @@ void CTigVM::jumpFalse() {
 	int addr = readWord();
 	if (result == 0)
 		pc = addr;
+}
+
+/** Return the child, if any, of the object on the stack. */
+void CTigVM::child() {
+	int objId = stack.pop().getObjId();
+	CTigVar result = getMember(objId, childId);
+	stack.push(result);
+}
+
+/** Return the sibling, if any, of the object on the stack. */
+void CTigVM::sibling() {
+	int objId = stack.pop().getObjId();
+	CTigVar result = getMember(objId, siblingId);
+	stack.push(result);
+}
+
+/** Get the contents of the variable identified by the stack, and leave it on the stack. */
+void CTigVM::getVar() {
+	int varId = stack.pop().getIntValue();
+	if (varId < memberIdStart) { //global variable
+		if (varId >= globalVarStart) {
+			varId -= globalVarStart;
+			stack.push(globalVars[varId]);
+		}
+		else { //local variable
+			stack.push(stack.local(varId));
+		}
+	}
+	else { //data member
+		int objectId = stack.pop().getIntValue();
+		if (objectId == selfObjId) {
+			objectId = currentObject;
+		}
+		if (objects[objectId].members.find(varId) == objects[objectId].members.end()) {
+			cerr << "\nError! Attempt to access non-existent member " << varId << " of object " << objectId;
+			stack.pushUndefined();
+		}
+		else
+			stack.push(objects[objectId].members[varId]);
+
+	}
+
 }
 
 
@@ -608,8 +663,14 @@ CTigVar CTigVM::getMember(CTigVar & obj, int memberId) {
 }
 
 /** Return a copy of the identified member. */
+//////////////////////////Try to use this and remove others!!!!!!!!!!!!!!!!!!
 CTigVar CTigVM::getMember(int objNo, int memberId) {
-	return objects[objNo].members[memberId];
+	CObjInstance* obj = &objects[objNo];
+	if (obj->members.find(memberId) == obj->members.end()) {
+		CTigVar notFound(tigUndefined);
+		return notFound;
+	}
+	return obj->members[memberId];
 }
 
 /** Return a copy of the named member. */
@@ -708,7 +769,7 @@ int CTigVM::getMemberValue(int objNo, int memberId) {
 
 int CTigVM::getMemberValue(int objNo, std::string memberName) {
 	int memberNo = getMemberId(memberName);
-	return getMember(objNo, memberNo).getIntValue();
+	return getMemberValue(objNo, memberNo);
 }
 
 /** Return the class of the given object.*/
@@ -717,14 +778,12 @@ int CTigVM::getClass(int objNo) {
 	return NULL;
 }
 
-bool CTigVM::inheritsFrom(int objId, int classId) {
-	CObjInstance* obj = &objects[objId];
+bool CTigVM::inheritsFrom(CObjInstance* obj, int classId) {
 	CObjInstance* classObj = &objects[classId];
 	return inheritsFrom(obj,classObj);
 }
 
 bool CTigVM::inheritsFrom(CObjInstance* obj, CObjInstance* classObj) {
-
 	for (auto currentClass : obj->classIds) {
 		if (currentClass == classObj->id)
 			return true;
