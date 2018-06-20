@@ -10,6 +10,11 @@ void CTigVar::setIntValue(int n) {
 	type = tigInt;
 }
 
+void CTigVar::setFloatValue(float n) {
+	floatValue = n;
+	type = tigFloat;
+}
+
 void CTigVar::setObjId(int id) {
 	intValue = id;
 	type = tigObj;

@@ -195,6 +195,7 @@ void CTigVM::execute() {
 		case opAssign: assign(); break;
 		case opGetString: getString(); break;
 		case opAdd: add(); break;
+		case opSub: sub(); break;
 		case opGiveOptions: giveOptions(); break;
 		case opJumpEvent: jumpEvent(); break;
 		case opStartTimer: startTimer(); break;
@@ -208,11 +209,13 @@ void CTigVM::execute() {
 		case opPushElem: pushElem(); break;
 		case opAssignElem: assignElem(); break;
 		case opEq: compEq(); break;
+		case opLT: compLT(); break;
 		case opJump: jump(); break;
 		case opJumpFalse: jumpFalse(); break;
 		case opChild: child(); break;
 		case opSibling: sibling(); break;
 		case opGetVar: getVar(); break;
+		case opChildren: children(); break;
 		}
 	}
 	if (pc >= progBufSize)
@@ -378,13 +381,78 @@ void CTigVM::getString() {
 	status = vmAwaitString;
 }
 
-/** Pop the two top values of the stack, add and push the result. */
+/** Pop the two top values off the stack, add, and push the result. */
 void CTigVM::add() {
 	CTigVar op2 = stack.pop();
 	CTigVar op1 = stack.pop();
-	CTigVar result;
+	CTigVar result(tigUndefined);
 	if (op1.type == tigString) {
 		result.setStringValue(op1.getStringValue() + op2.getStringValue());
+	}
+	if (op1.type == tigInt) {
+		int intResult = op1.getIntValue();
+		if (op2.type == tigInt)
+			intResult += op2.getIntValue();
+		else if (op2.type == tigFloat)
+			intResult += (int)op2.getFloatValue();
+		else if (op2.type == tigString)
+			intResult += std::stoi(op2.getStringValue());
+		else if (op2.type == tigObj) {
+			stack.push(result);
+			return;
+		}
+		result.setIntValue(intResult);
+	}
+	if (op1.type == tigFloat) {
+		float floatResult = op1.getFloatValue();
+		if (op2.type == tigInt)
+			floatResult += op2.getIntValue();
+		else if (op2.type == tigFloat)
+			floatResult += op2.getFloatValue();
+		else if (op2.type == tigString)
+			floatResult += std::stof(op2.getStringValue());
+		else if (op2.type == tigObj) {
+			stack.push(result);
+			return;
+		}
+		result.setFloatValue(floatResult);
+	}
+	stack.push(result);
+}
+
+/** Pop the top two values off the stack, subtract, and push the result. */
+void CTigVM::sub() {
+	CTigVar op2 = stack.pop();
+	CTigVar op1 = stack.pop();
+	CTigVar result(tigUndefined);
+
+	if (op1.type == tigInt) {
+		int intResult = op1.getIntValue();
+		if (op2.type == tigInt)
+			intResult -= op2.getIntValue();
+		else if (op2.type == tigFloat)
+			intResult -= (int)op2.getFloatValue();
+		else if (op2.type == tigString)
+			intResult -= std::stoi(op2.getStringValue());
+		else if (op2.type == tigObj) {
+			stack.push(result);
+			return;
+		}
+		result.setIntValue(intResult);
+	}
+	else if (op1.type == tigFloat) {
+		float floatResult = op1.getFloatValue();
+		if (op2.type == tigInt)
+			floatResult -= op2.getIntValue();
+		else if (op2.type == tigFloat)
+			floatResult -= op2.getFloatValue();
+		else if (op2.type == tigString)
+			floatResult -= std::stof(op2.getStringValue());
+		else if (op2.type == tigObj) {
+			stack.push(result);
+			return;
+		}
+		result.setFloatValue(floatResult);
 	}
 	stack.push(result);
 }
@@ -547,6 +615,29 @@ void CTigVM::compEq() {
 	stack.push(result);
 }
 
+void CTigVM::compLT() {
+	CTigVar op2 = stack.pop();
+	CTigVar op1 = stack.pop();
+	int result = 0;
+	if (op1.type == tigInt && op2.type == tigInt) {
+		result = op1.getIntValue() < op2.getIntValue();
+	}
+	else if (op1.type == tigInt && op2.type == tigFloat) {
+		result = op1.getIntValue() < op2.getFloatValue();
+	}
+	else if (op1.type == tigFloat && op2.type == tigInt) {
+		result = op1.getFloatValue() < op2.getIntValue();
+	}
+	else if (op1.type == tigFloat && op2.type == tigFloat) {
+		result = op1.getFloatValue() < op2.getFloatValue();
+	}
+	else if (op1.type == tigString && op2.type == tigString) {
+		result = op1.getStringValue() < op2.getStringValue();
+	}
+
+	stack.push(result);
+}
+
 /** Jump unconditionally. */
 void CTigVM::jump() {
 	pc = readWord();
@@ -600,6 +691,18 @@ void CTigVM::getVar() {
 
 	}
 
+}
+
+/** Find the number of children of the object on the stack, and leave that on the stack. */
+void CTigVM::children() {
+	int objId = stack.pop().getObjId();
+	int count = 0;
+	CTigVar childObj = getMember(objId, childId);
+	while (childObj.getObjId() != 0) {
+		count++;
+		childObj = getMember(childObj, siblingId);
+	}
+	stack.push(count);
 }
 
 

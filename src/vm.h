@@ -76,6 +76,7 @@ public:
 	void assign();
 	void getString();
 	void add();
+	void sub();
 	void jumpEvent();
 	void startTimer();
 	void createTimedEvent();
@@ -88,11 +89,13 @@ public:
 	void pushElem();
 	void assignElem();
 	void compEq();
+	void compLT();
 	void jump();
 	void jumpFalse();
 	void child();
 	void sibling();
 	void getVar();
+	void children();
 
 
 	TVMstatus getStatus();

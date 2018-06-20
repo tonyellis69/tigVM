@@ -21,6 +21,7 @@ public:
 	//~CTigVar() {};
 	void setStringValue(std::string& string);
 	void setIntValue(int n);
+	void setFloatValue(float n);
 	void setObjId(int id);
 	void setFuncAddr(int addr);
 	void setArray(CArray& array);
