@@ -96,6 +96,7 @@ public:
 	void sibling();
 	void getVar();
 	void children();
+	void makeHot();
 
 
 	TVMstatus getStatus();

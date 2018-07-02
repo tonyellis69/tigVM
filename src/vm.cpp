@@ -172,7 +172,7 @@ void CTigVM::readObjectDefTable(std::ifstream & progFile) {
 
 /** Read the list of member names from the program file and store them. */
 void CTigVM::readMemberNameTable(std::ifstream & progFile) {
-	int memberNameTableSize; char numMembers;
+	int memberNameTableSize; 
 	progFile.read((char*)&memberNameTableSize, 4);
 	memberNames.resize(memberNameTableSize);
 	for (auto &name : memberNames) {
@@ -216,6 +216,7 @@ void CTigVM::execute() {
 		case opSibling: sibling(); break;
 		case opGetVar: getVar(); break;
 		case opChildren: children(); break;
+		case opMakeHot: makeHot(); break;
 		}
 	}
 	if (pc >= progBufSize)
@@ -703,6 +704,16 @@ void CTigVM::children() {
 		childObj = getMember(childObj, siblingId);
 	}
 	stack.push(count);
+}
+
+/** Wrap the string on the stack with hot text markup */
+void CTigVM::makeHot() {
+	int objId = stack.pop().getObjId();
+	int method = stack.pop().getIntValue();
+	std::string text = stack.pop().getStringValue();
+
+	text = "\\h{" + std::to_string(method) + '@' + std::to_string(objId) + "}" + text + "\\h";
+	stack.push(text);
 }
 
 
