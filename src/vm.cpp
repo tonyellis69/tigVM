@@ -31,6 +31,7 @@ bool CTigVM::loadProgFile(std::string filename) {
 	readGlobalVarTable(progFile);
 	readObjectDefTable(progFile);
 	readMemberNameTable(progFile);
+	readGlobalFnTable(progFile);
 
 	initIds();
 
@@ -180,6 +181,16 @@ void CTigVM::readMemberNameTable(std::ifstream & progFile) {
 	}
 }
 
+/** Read the list of global function addresses and store them. */
+void CTigVM::readGlobalFnTable(std::ifstream & progFile) {
+	int fnTableSize;
+	progFile.read((char*)&fnTableSize, 4);
+	globalFuncs.resize(fnTableSize);
+	for (auto &addr : globalFuncs) {
+		progFile.read((char*)&addr, 4);
+	}
+}
+
 /** Execute the currently loaded program starting at the current program counter position. */
 void CTigVM::execute() {
 	escape = false;
@@ -202,6 +213,7 @@ void CTigVM::execute() {
 		case opTimedEvent: createTimedEvent(); break;
 		case opPushObj:	pushObj(); break;
 		case opCall: call(); break;
+		case opCallFn: callFn(); break;
 		case opReturn: returnOp(); break;
 		case opReturnTrue: returnTrue(); break;
 		case opHot: hot(); break;
@@ -493,7 +505,7 @@ void CTigVM::call() {
 	if (obj == selfObjId)
 		obj = currentObject;
 
-	currentObject = obj;
+	//currentObject = obj; ?????????????MISTAKE? Check
 	stack.push(currentObject);
 	stack.push(pc); //save return address
 	pc = objects[obj].members[memberId].getFuncAddress();;
@@ -512,6 +524,15 @@ void CTigVM::call() {
 	int varCount = readByte();
 	stack.reserveLocalVars(varCount);
 	*/
+}
+
+void CTigVM::callFn() {
+	int funcNo = readWord();
+	stack.push(currentObject);
+	stack.push(pc); //save return address
+	pc = globalFuncs[funcNo];
+	int varCount = readByte();
+	stack.reserveLocalVars(varCount);
 }
 
 

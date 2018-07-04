@@ -58,6 +58,7 @@ public:
 	void readGlobalVarTable(std::ifstream& progFile);
 	void readObjectDefTable(std::ifstream& progFile);
 	void readMemberNameTable(std::ifstream & progFile);
+	void readGlobalFnTable(std::ifstream & progFile);
 	void execute();
 	void update();
 
@@ -82,6 +83,7 @@ public:
 	void createTimedEvent();
 	void pushObj();
 	void call();
+	void callFn();
 	void returnOp();
 	void returnTrue();
 	void hot();
@@ -145,6 +147,7 @@ public:
 	std::vector<CTigVar> globalVars; ///<Global variable storage.
 	std::map<int, CObjInstance> objects; ///<Object instances.
 	std::vector<std::string> memberNames; ///<Member names in id number order.
+	std::vector<int> globalFuncs; ///<Addresses of global functions in id order.
 
 	CStack stack; ///<The virtual machine stack.
 
