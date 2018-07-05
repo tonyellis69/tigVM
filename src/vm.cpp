@@ -528,11 +528,23 @@ void CTigVM::call() {
 
 void CTigVM::callFn() {
 	int funcNo = readWord();
+	int paramCount = readByte();
+
+	std::vector<CTigVar> params(paramCount);
+	for (int p = 0; p < paramCount; p++) {
+		params[p] = stack.pop();
+	}
+ 
 	stack.push(currentObject);
 	stack.push(pc); //save return address
+
 	pc = globalFuncs[funcNo];
 	int varCount = readByte();
 	stack.reserveLocalVars(varCount);
+
+	for (int p = 0; p < paramCount; p++) {
+		stack.local(p) = params[(paramCount-1) - p ];
+	}
 }
 
 
