@@ -502,8 +502,14 @@ void CTigVM::pushObj() {
 void CTigVM::call() {
 	int obj = stack.pop().getObjId();
 	int memberId = readWord();
+	int paramCount = readByte();
 	if (obj == selfObjId)
 		obj = currentObject;
+
+	std::vector<CTigVar> params(paramCount);
+	for (int p = 0; p < paramCount; p++) {
+		params[p] = stack.pop();
+	}
 
 	//currentObject = obj; ?????????????MISTAKE? Check
 	stack.push(currentObject);
@@ -512,6 +518,9 @@ void CTigVM::call() {
 	int varCount = readByte();
 	stack.reserveLocalVars(varCount);
 
+	for (int p = 0; p < paramCount; p++) {
+		stack.local(p) = params[(paramCount - 1) - p];
+	}
 
 	/*
 	int addr = stack.pop().getFuncAddress();
