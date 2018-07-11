@@ -87,10 +87,12 @@ public:
 	void returnOp();
 	void returnTrue();
 	void hot();
+	void purge();
 	void initArray();
 	void pushElem();
 	void assignElem();
 	void compEq();
+	void compNE();
 	void compLT();
 	void jump();
 	void jumpFalse();
@@ -99,6 +101,8 @@ public:
 	void getVar();
 	void children();
 	void makeHot();
+	void brk();
+	void move();
 
 
 	TVMstatus getStatus();
@@ -106,6 +110,7 @@ public:
 	void sendMessage(const TVMmsg& msg);
 	virtual void writeText(std::string& text) {};
 	virtual void hotText(std::string& text, int memberId, int objectId) {};
+	virtual void purgeMsg(int memberId, int objId) {};
 	
 	CTigVar getGlobalVar(std::string varName);
 	CTigVar getMember(CTigVar & obj, int memberId);
@@ -159,4 +164,6 @@ public:
 	int childId; ///<Member id for the 'child' member
 	int siblingId; ///<Member id for the 'sibling' member
 	int parentId; ///<Member id for the 'parent' member
+
+	int channel; ///<The output source we're currently writing to.
 };

@@ -9,6 +9,7 @@ CTigVM::CTigVM() {
 	escape = false;
 	time(&currentTime);
 	status = vmNoProgram;
+	channel = 0;
 }
 
 CTigVM::~CTigVM() {
@@ -217,10 +218,12 @@ void CTigVM::execute() {
 		case opReturn: returnOp(); break;
 		case opReturnTrue: returnTrue(); break;
 		case opHot: hot(); break;
+		case opPurge: purge(); break;
 		case opInitArray: initArray(); break;
 		case opPushElem: pushElem(); break;
 		case opAssignElem: assignElem(); break;
 		case opEq: compEq(); break;
+		case opNE: compNE(); break;
 		case opLT: compLT(); break;
 		case opJump: jump(); break;
 		case opJumpFalse: jumpFalse(); break;
@@ -229,6 +232,8 @@ void CTigVM::execute() {
 		case opGetVar: getVar(); break;
 		case opChildren: children(); break;
 		case opMakeHot: makeHot(); break;
+		case opBrk: brk(); break;
+		case opMove: move(); break;
 		}
 	}
 	if (pc >= progBufSize)
@@ -585,6 +590,13 @@ void CTigVM::hot() {
 	hotText(text, readWord(),obj);
 }
 
+/** Ask the user to remove any hot text with the given values. */
+void CTigVM::purge() {
+	int objId = stack.pop().getObjId();
+	int memberId = stack.pop().getIntValue();
+	purgeMsg(memberId, objId);
+}
+
 /** Initialise an array structure, leaving a Tig value referencing it on the stack. */
 void CTigVM::initArray() {
 	CTigVar newArray;
@@ -639,7 +651,10 @@ void CTigVM::compEq() {
 	CTigVar op2 = stack.pop();
 	CTigVar op1 = stack.pop();
 	int result = 0;
-	if (op1.type == tigInt && op2.type == tigInt) {
+	if (op1.type == tigObj && op2.type == tigObj) {
+		result = op1.getObjId() == op2.getObjId();
+	}
+	else if (op1.type == tigInt && op2.type == tigInt) {
 		result = op1.getIntValue() == op2.getIntValue();
 	}
 	else if (op1.type == tigInt && op2.type == tigFloat) {
@@ -653,6 +668,32 @@ void CTigVM::compEq() {
 	} 
 	else if (op1.type == tigString && op2.type == tigString) {
 		result = op1.getStringValue() == op2.getStringValue();
+	}
+
+	stack.push(result);
+}
+
+void CTigVM::compNE() {
+	CTigVar op2 = stack.pop();
+	CTigVar op1 = stack.pop();
+	int result = true;
+	if (op1.type == tigObj && op2.type == tigObj) {
+		result = op1.getObjId() != op2.getObjId();
+	}	
+	else if (op1.type == tigInt && op2.type == tigInt ) {
+		result = op1.getIntValue() != op2.getIntValue();
+	}
+	else if (op1.type == tigInt && op2.type == tigFloat) {
+		result = op1.getIntValue() != op2.getFloatValue();
+	}
+	else if (op1.type == tigFloat && op2.type == tigInt) {
+		result = op1.getFloatValue() != op2.getIntValue();
+	}
+	else if (op1.type == tigFloat && op2.type == tigFloat) {
+		result = op1.getFloatValue() != op2.getFloatValue();
+	}
+	else if (op1.type == tigString && op2.type == tigString) {
+		result = op1.getStringValue() != op2.getStringValue();
 	}
 
 	stack.push(result);
@@ -756,6 +797,42 @@ void CTigVM::makeHot() {
 
 	text = "\\h{" + std::to_string(method) + '@' + std::to_string(objId) + "}" + text + "\\h";
 	stack.push(text);
+}
+
+void CTigVM::brk() {
+	cerr << "\nBreak triggered at PC " << pc << ". ";
+}
+
+void CTigVM::move() {
+	int newParentId = stack.pop().getObjId();
+	int objId = stack.pop().getObjId();
+
+	CObjInstance* obj = &objects[objId];
+	CObjInstance* newParentObj = &objects[newParentId];
+	CObjInstance* objParent = &objects[obj->members[parentId].getObjId()];
+
+	CObjInstance* childObj = &objects[objParent->members[childId].getObjId()];
+	CObjInstance* olderSibling = NULL;
+
+	while (childObj != obj) {
+		olderSibling = childObj;
+		childObj = &objects[childObj->members[siblingId].getObjId()];
+	}
+
+	if (olderSibling)
+		olderSibling->members[siblingId] = obj->members[siblingId];
+	else
+		objParent->members[childId] = obj->members[siblingId];
+
+	int destChild = newParentObj->members[childId].getObjId();
+
+	if (destChild)
+		obj->members[siblingId].setObjId(destChild);
+	else
+		obj->members[siblingId].setObjId(NULL);
+
+	newParentObj->members[childId].setObjId(objId);
+	obj->members[parentId].setObjId(newParentId);
 }
 
 
