@@ -3,7 +3,7 @@
 #include "vm.h"
 //#include "..\3DEngine\src\BaseApp.h"
 
-enum TvmAppMsgType {appNone,appWriteText,appWriteBold,appHotText,appPurge};
+enum TvmAppMsgType {appNone,appWriteText,appWriteBold,appHotText,appPurge,appClearWin};
 struct TvmAppMsg {
 	TvmAppMsgType type;
 	std::string text;
@@ -19,7 +19,8 @@ public:
 	void setApp(CBaseApp* app);
 	void writeText(std::string& text);
 	void hotText(std::string& text, int memberId, int objectId);
-	void purgeMsg(int memberId, int objId);
+	void purge(int memberId, int objId);
+	void clearWin();
 
 	CBaseApp* pApp; ///<Pointer to the user application.
 };

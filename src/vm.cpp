@@ -9,7 +9,7 @@ CTigVM::CTigVM() {
 	escape = false;
 	time(&currentTime);
 	status = vmNoProgram;
-	channel = 0;
+	window = 0;
 }
 
 CTigVM::~CTigVM() {
@@ -234,6 +234,9 @@ void CTigVM::execute() {
 		case opMakeHot: makeHot(); break;
 		case opBrk: brk(); break;
 		case opMove: move(); break;
+		case opWin: win(); break;
+		case opClr: clr(); break;
+
 		}
 	}
 	if (pc >= progBufSize)
@@ -594,7 +597,7 @@ void CTigVM::hot() {
 void CTigVM::purge() {
 	int objId = stack.pop().getObjId();
 	int memberId = stack.pop().getIntValue();
-	purgeMsg(memberId, objId);
+	purge(memberId, objId);
 }
 
 /** Initialise an array structure, leaving a Tig value referencing it on the stack. */
@@ -833,6 +836,15 @@ void CTigVM::move() {
 
 	newParentObj->members[childId].setObjId(objId);
 	obj->members[parentId].setObjId(newParentId);
+}
+
+/** Set the window we're outputting to. */
+void CTigVM::win() {
+	window = stack.pop().getIntValue();
+}
+
+void CTigVM::clr() {
+	clearWin();
 }
 
 

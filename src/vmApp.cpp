@@ -12,7 +12,7 @@ void CVMapp::writeText(std::string & text) {
 	msg.type = appWriteText;
 	//TO DO: hot text mode causes a different msg, so app handles text differently?
 	msg.text = text;
-	msg.integer = channel;
+	msg.integer = window;
 	pApp->vmMessage(msg);
 }
 
@@ -25,11 +25,18 @@ void CVMapp::hotText(std::string & text, int memberId, int objectId) {
 	pApp->vmMessage(msg);
 }
 
-void CVMapp::purgeMsg(int memberId, int objId) {
+void CVMapp::purge(int memberId, int objId) {
 	TvmAppMsg msg;
 	msg.type = appPurge;
 	msg.integer = memberId;
 	msg.integer2 = objId;
+	pApp->vmMessage(msg);
+}
+
+void CVMapp::clearWin() {
+	TvmAppMsg msg;
+	msg.type = appClearWin;
+	msg.integer = window;
 	pApp->vmMessage(msg);
 }
 
