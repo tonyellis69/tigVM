@@ -18,13 +18,20 @@ public:
 	CTigVar() { intValue = 0; floatValue = 0.0; funcAddress = 0; type = tigInt; }
 	CTigVar(int intVal) { setIntValue(intVal); }
 	CTigVar(TigVarType typeVal) { type = typeVal; };
+	CTigVar(const CTigVar& var2);
+	void operator = (const int& var2);
+	void operator = (const float& var2);
+	void operator = (const std::string& var2);
+	void operator = (const CArray& var2);
+	void operator = (const CTigVar& var2);
+	void resetSharedPointers();
 	//~CTigVar() {};
-	void setStringValue(std::string& string);
+	void setStringValue(const std::string& string);
 	void setIntValue(int n);
 	void setFloatValue(float n);
 	void setObjId(int id);
 	void setFuncAddr(int addr);
-	void setArray(CArray& array);
+	void setArray();
 	std::string getStringValue();
 	int getIntValue();
 	float getFloatValue();
@@ -40,5 +47,5 @@ public:
 		float floatValue;
 		int funcAddress;
 	};
-	CArray* pArray; //TO DO: needs to be shared pointer!
+	std::shared_ptr<CArray> pArray;
 };

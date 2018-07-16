@@ -55,7 +55,6 @@ public:
 	void initIds();
 	int readHeader(std::ifstream& progFile);
 	void readEventTable(std::ifstream& progFile);
-	void readGlobalVarTable(std::ifstream& progFile);
 	void readObjectDefTable(std::ifstream& progFile);
 	void readMemberNameTable(std::ifstream & progFile);
 	void readGlobalFnTable(std::ifstream & progFile);
@@ -82,8 +81,9 @@ public:
 	void startTimer();
 	void createTimedEvent();
 	void pushObj();
+	void pushSelf();
 	void call();
-	void callFn();
+	//void callFn();
 	void returnOp();
 	void returnTrue();
 	void hot();
@@ -151,11 +151,9 @@ public:
 
 	std::vector<TEventRec> eventTable; ///<Event ids and addresses.
 	std::vector<TOptionRec> currentOptionList; ///<A list of user options
-	std::vector<TGlobalVarNameRec> globalVarNameTable; ///<Global variable names and ids.
-	std::vector<CTigVar> globalVars; ///<Global variable storage.
 	std::map<int, CObjInstance> objects; ///<Object instances.
 	std::vector<std::string> memberNames; ///<Member names in id number order.
-	std::vector<int> globalFuncs; ///<Addresses of global functions in id order.
+//	std::map<int,int> globalFuncs; ///<Addresses of global functions in id order.
 
 	CStack stack; ///<The virtual machine stack.
 
