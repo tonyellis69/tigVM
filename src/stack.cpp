@@ -30,10 +30,6 @@ void CStack::pushUndefined() {
 	stack.push_back(fail);
 }
 
-/** Return the top value on the stack. */
-CTigVar & CStack::top() {
-	return stack.back();
-}
 
 /** Remove the top element of the stack, freeing any memory. */
 CTigVar CStack::pop() {

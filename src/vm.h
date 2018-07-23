@@ -20,10 +20,13 @@ struct TOptionRec {
 	std::string text; ///<Option text.
 };
 
-struct TGlobalVarNameRec {
-	std::string name; 
-	int id;
+struct THotTExt {
+	std::string text;
+	int msgId;
+	int objId;
 };
+
+
 
 class CObjInstance {
 public:
@@ -57,7 +60,6 @@ public:
 	void readEventTable(std::ifstream& progFile);
 	void readObjectDefTable(std::ifstream& progFile);
 	void readMemberNameTable(std::ifstream & progFile);
-	void readGlobalFnTable(std::ifstream & progFile);
 	void execute();
 	void update();
 
@@ -83,7 +85,8 @@ public:
 	void pushObj();
 	void pushSelf();
 	void call();
-	//void callFn();
+	void callDeref();
+	void superCall();
 	void returnOp();
 	void returnTrue();
 	void hot();
@@ -91,6 +94,8 @@ public:
 	void initArray();
 	void pushElem();
 	void assignElem();
+	void arrayIt();
+	void pop();
 	void compEq();
 	void compNE();
 	void compLT();
@@ -105,6 +110,10 @@ public:
 	void move();
 	void win();
 	void clr();
+	void style();
+	void cap();
+	void inherits();
+	void hotClr();
 
 
 	TVMstatus getStatus();
@@ -142,6 +151,8 @@ public:
 	CObjInstance* getObject(int objId);
 	int getObjectId(CObjInstance* obj);
 
+	std::string devil(std::string text);
+
 	int progBufSize;
 	char* progBuf; 
 	int pc; ///<Program counter. Points at the next command to execute.
@@ -167,4 +178,6 @@ public:
 	int parentId; ///<Member id for the 'parent' member
 
 	int window; ///<The output we're currently writing to.
+
+	std::vector<THotTExt> hotTexts; ///<The list of known hot texts, if any, for the devil to look out for.
 };

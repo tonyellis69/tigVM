@@ -14,7 +14,13 @@ public:
 	void push(CTigVar& var);
 	void pushObj(int id);
 	void pushUndefined();
-	CTigVar& top();
+	CTigVar& operator[] (int x) {
+		return stack[x];
+	}
+	int size() { return stack.size(); }
+	CTigVar& top(int x) {
+		return stack[stack.size() - 1 + x];
+	}
 	CTigVar pop();
 	CTigVar& local(int var) { return stack[localVarStart + var]; }
 	

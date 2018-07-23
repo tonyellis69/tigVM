@@ -37,6 +37,7 @@ public:
 	float getFloatValue();
 	int getFuncAddress();
 	int getObjId();
+	int getArraySize();
 
 	TigVarType type;
 	std::shared_ptr<std::string> pStrValue;

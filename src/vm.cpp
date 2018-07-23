@@ -207,7 +207,8 @@ void CTigVM::execute() {
 		case opPushObj:	pushObj(); break;
 		case opPushSelf: pushSelf(); break;
 		case opCall: call(); break;
-	//	case opCallFn: callFn(); break;
+		case opCallDeref: callDeref(); break;
+		case opSuperCall: superCall(); break;
 		case opReturn: returnOp(); break;
 		case opReturnTrue: returnTrue(); break;
 		case opHot: hot(); break;
@@ -215,6 +216,8 @@ void CTigVM::execute() {
 		case opInitArray: initArray(); break;
 		case opPushElem: pushElem(); break;
 		case opAssignElem: assignElem(); break;
+		case opArrayIt: arrayIt(); break;
+		case opPop: pop(); break;
 		case opEq: compEq(); break;
 		case opNE: compNE(); break;
 		case opLT: compLT(); break;
@@ -229,7 +232,10 @@ void CTigVM::execute() {
 		case opMove: move(); break;
 		case opWin: win(); break;
 		case opClr: clr(); break;
-
+		case opStyle: style(); break;
+		case opCap: cap(); break;
+		case opInherits: inherits(); break;
+		case opHotClr: hotClr(); break;
 		}
 	}
 	if (pc >= progBufSize)
@@ -333,7 +339,10 @@ void CTigVM::pushVar() {
 
 /** Pop the top value off the stack and print it. */
 void CTigVM::print() {
-	writeText(stack.pop().getStringValue());
+	std::string text = stack.pop().getStringValue();
+	text = devil(text);
+
+	writeText(text);
 }
 
 /** Record the following option for later processing. */
@@ -358,8 +367,9 @@ void CTigVM::end() {
 
 /** Pop a value off the stack and assign it to a variable. */
 void CTigVM::assign() {
-	CTigVar value = stack.pop();
 	int varId = stack.pop().getIntValue();
+	
+
 	CTigVar* pVar = NULL; int objectId = NULL;
 
 	if (varId < memberIdStart) {
@@ -384,6 +394,8 @@ void CTigVM::assign() {
 			}
 		}
 	}
+
+	CTigVar value = stack.pop();
 
 	if (!pVar) {
 		cerr << "\nError! Attempt to assign value " << value.getStringValue() <<
@@ -526,18 +538,63 @@ void CTigVM::call() {
 		params[p] = stack.pop();
 	}
 
-	//currentObject = obj; ?????????????MISTAKE? Check
+	CTigVar callee;
+	auto fnMember = objects[obj].members.find(memberId);
+	if (fnMember == objects[obj].members.end()) { //not a member function of obj
+		callee = objects[zeroObject].members[memberId];
+	}
+	else
+		callee = fnMember->second;
+
+	if (callee.type != tigFunc) {
+		stack.push(callee);
+		return;
+	}
+
 	stack.push(currentObject);
 	stack.push(pc); //save return address
 
-	auto fnMember = objects[obj].members.find(memberId);
-	if (fnMember == objects[obj].members.end()) { //not a member function of obj
-		//pc = globalFuncs[memberId];
-		pc = objects[zeroObject].members[memberId].getFuncAddress();
-	}
-	else
-		pc = fnMember->second.getFuncAddress();
+	currentObject = obj;
 
+	pc = callee.getFuncAddress();
+
+	int varCount = readByte();
+	stack.reserveLocalVars(varCount);
+
+	for (int p = 0; p < paramCount; p++) {
+		stack.local(p) = params[(paramCount - 1) - p];
+	}
+}
+
+void CTigVM::callDeref() {
+	int memberId = stack.pop().getIntValue();
+	int paramCount = readByte();
+
+	std::vector<CTigVar> params(paramCount);
+	for (int p = 0; p < paramCount; p++) {
+		params[p] = stack.pop();
+	}
+
+	CTigVar callee;
+	auto fnMember = objects[currentObject].members.find(memberId);
+	if (fnMember != objects[currentObject].members.end()) {
+		callee = objects[currentObject].members[memberId];
+	}
+	else {
+		cerr << "\nDeference to nonexistent member " << memberId << " of object " << currentObject;
+		stack.pushUndefined();
+		return;
+	}
+
+	if (callee.type != tigFunc) {
+		stack.push(callee);
+		return;
+	}
+
+	stack.push(currentObject);
+	stack.push(pc); //save return address
+
+	pc = callee.getFuncAddress();
 
 	int varCount = readByte();
 	stack.reserveLocalVars(varCount);
@@ -546,18 +603,40 @@ void CTigVM::call() {
 		stack.local(p) = params[(paramCount - 1) - p];
 	}
 
-	/*
-	int addr = stack.pop().getFuncAddress();
+}
 
-	/////////////////////////////
-	//should retrieve object id here
+/** Call the superclass version of the function. */
+void CTigVM::superCall() {
+	int superClassId = stack.pop().getObjId();
+	int memberId = readWord();
+	int paramCount = readByte();
 
+	std::vector<CTigVar> params(paramCount);
+	for (int p = 0; p < paramCount; p++) {
+		params[p] = stack.pop();
+	}
+
+	auto fnMember = objects[superClassId].members.find(memberId);
+	if (fnMember == objects[superClassId].members.end()) {
+		cerr << "\nError! Attempt to superclass member function " << memberId <<
+			" to object " << " superClassId.";
+		return;
+	}
+
+	stack.push(currentObject);
 	stack.push(pc); //save return address
-	pc = addr;
+
+	pc = fnMember->second.getFuncAddress();
+	
 	int varCount = readByte();
 	stack.reserveLocalVars(varCount);
-	*/
+
+	for (int p = 0; p < paramCount; p++) {
+		stack.local(p) = params[(paramCount - 1) - p];
+	}
 }
+
+
 /*
 void CTigVM::callFn() {
 	int funcNo = readWord();
@@ -589,6 +668,8 @@ void CTigVM::returnOp() {
 	pc = stack.pop().getIntValue(); //get calling address
 	currentObject = stack.pop().getIntValue(); //get calling object
 	stack.push(value);
+	if (pc == NULL)
+		status = vmEof;
 }
 
 /** Return execution to the calling address left on the stack, leaving 1 at the top. */
@@ -598,15 +679,17 @@ void CTigVM::returnTrue() {
 	pc = stack.pop().getIntValue(); //get calling address
 	currentObject = stack.pop().getIntValue(); //get calling object
 	stack.push(1);
+	if (pc == NULL)
+		status = vmEof;
 }
 
 /** Pass on text identified as hot for the user to do something with. */
 void CTigVM::hot() {
-	int obj = stack.pop().getIntValue();
-	if (obj == selfObjId && currentObject != 0)
-		obj = currentObject;
-	std::string text = readString();
-	hotText(text, readWord(),obj);
+	int objId = stack.pop().getIntValue();
+	int memberId = stack.pop().getIntValue();
+	std::string text = stack.pop().getStringValue();
+	hotText(text, memberId , objId);
+	hotTexts.push_back({ text, memberId, objId });
 }
 
 /** Ask the user to remove any hot text with the given values. */
@@ -678,7 +761,7 @@ void CTigVM::pushElem() {
 
 /** Assign the value on the stack to the array address also on the stack. */
 void CTigVM::assignElem() {
-	CTigVar value = stack.pop();
+	
 	int varId = stack.pop().getIntValue();
 	CTigVar* pVar = NULL; int objectId = NULL;
 
@@ -705,15 +788,36 @@ void CTigVM::assignElem() {
 		}
 	}
 
+	int index = stack.pop().getIntValue();
+
+	CTigVar value = stack.pop();
+
 	if (!pVar) {
 		cerr << "\nError! Attempt to assign value " << value.getStringValue() <<
 			" to non-existent member " << varId << " of object " << objectId;
 		return;
 	}
-
-		int index = stack.pop().getIntValue();
-		pVar->pArray->elements[index] = value;
 	
+	pVar->pArray->elements[index] = value;
+}
+
+/** Array iterator. */
+void CTigVM::arrayIt() {
+	int resumeAddr = readWord();
+	int index = stack.top(-1).getIntValue();
+	if (index < stack.top(0).getArraySize()) {
+		stack.push(stack.top(0).pArray->elements[index]);
+		stack.top(-2) = ++index;
+	}
+	else {
+		stack.pop();
+		stack.pop();
+		pc = resumeAddr;
+	}
+}
+
+void CTigVM::pop() {
+	stack.pop();
 }
 
 /** Compare the top 2 values on the stack for equality. */
@@ -915,6 +1019,32 @@ void CTigVM::clr() {
 	clearWin();
 }
 
+void CTigVM::style() {
+	std::string name = stack.pop().getStringValue();
+	std::string result = "\\style{" + name + "}";
+	stack.push(result);
+}
+
+void CTigVM::cap() {
+	std::string text = stack.pop().getStringValue();
+	text[0] = toupper(text[0]);
+	stack.push(text);
+}
+
+void CTigVM::inherits() {
+	int classId = stack.pop().getObjId();
+	int objId = stack.pop().getObjId();
+
+	if (inheritsFrom(&objects[objId], &objects[classId]))
+		stack.push(1);
+	else
+		stack.push(0);
+}
+
+void CTigVM::hotClr() {
+	hotTexts.clear();
+}
+
 
 
 TVMstatus CTigVM::getStatus() {
@@ -1061,7 +1191,7 @@ CTigVar CTigVM::executeObjMember(CTigVar & ObjMember) {
 
 		int addr = ObjMember.getFuncAddress();
 		stack.push(NULL); //dummy calling object
-		stack.push(pc);
+		stack.push(NULL); //dummy start position
 		pc = addr;
 		int varCount = readByte();
 		stack.reserveLocalVars(varCount);
@@ -1153,4 +1283,21 @@ int CTigVM::getObjectId(CObjInstance * obj) {
 	if (it == objects.end())
 		return 0;
 	return distance(objects.begin(), it)-1;
+}
+
+/** Printer's devil: replaces any instances of hot text with hot text markup. */
+std::string CTigVM::devil(std::string text) {
+	for (auto hotText : hotTexts) {
+		size_t found = text.find(hotText.text);
+		while (found != std::string::npos) { //found, but check it isn't part of a bigger word:
+			if ((found == 0 || !isalnum(text[found - 1])) && !isalnum(text[found + hotText.text.size()])) {
+				std::string hotStr = "\\h{" + std::to_string(hotText.msgId) + '@' + std::to_string(hotText.objId) + "}";
+				hotStr += hotText.text + "\\h";
+				text.replace(found, hotText.text.size(), hotStr);
+				break; //don't look again
+			}
+			found = text.find(hotText.text, found + hotText.text.size());
+		}
+	}
+	return text;
 }

@@ -118,4 +118,11 @@ int CTigVar::getObjId() {
 	return intValue;
 }
 
+int CTigVar::getArraySize() {
+	if (type == tigArray) {
+		return pArray->elements.size();
+	}
+	return 0;
+}
+
 
