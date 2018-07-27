@@ -21,9 +21,11 @@ struct TOptionRec {
 };
 
 struct THotTExt {
+	//THotTExt() { used = false; }
 	std::string text;
 	int msgId;
 	int objId;
+	bool used;
 };
 
 
@@ -99,6 +101,7 @@ public:
 	void compEq();
 	void compNE();
 	void compLT();
+	void compGT();
 	void jump();
 	void jumpFalse();
 	void child();
@@ -114,8 +117,13 @@ public:
 	void cap();
 	void inherits();
 	void hotClr();
+	void hotCheck();
+	void not();
+	void and();
+	void or();
+	void arrayPush();
 
-
+	CTigVar * resolveVariableAddress();
 	TVMstatus getStatus();
 	void getOptionStrs(std::vector<std::string>& optionStrs);
 	void sendMessage(const TVMmsg& msg);

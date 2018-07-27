@@ -22,7 +22,7 @@ public:
 		return stack[stack.size() - 1 + x];
 	}
 	CTigVar pop();
-	CTigVar& local(int var) { return stack[localVarStart + var]; }
+	CTigVar& local(int var);
 	
 
 	void reserveLocalVars(int varCount);

@@ -221,6 +221,7 @@ void CTigVM::execute() {
 		case opEq: compEq(); break;
 		case opNE: compNE(); break;
 		case opLT: compLT(); break;
+		case opGT: compGT(); break;
 		case opJump: jump(); break;
 		case opJumpFalse: jumpFalse(); break;
 		case opChild: child(); break;
@@ -236,6 +237,11 @@ void CTigVM::execute() {
 		case opCap: cap(); break;
 		case opInherits: inherits(); break;
 		case opHotClr: hotClr(); break;
+		case opHotCheck: hotCheck(); break;
+		case opNot: not(); break;
+		case opAnd: and(); break;
+		case opOr: or(); break;
+		case opArrayPush: arrayPush(); break;
 		}
 	}
 	if (pc >= progBufSize)
@@ -367,8 +373,23 @@ void CTigVM::end() {
 
 /** Pop a value off the stack and assign it to a variable. */
 void CTigVM::assign() {
-	int varId = stack.pop().getIntValue();
+	CTigVar* pVar = resolveVariableAddress(); 
+	CTigVar value = stack.pop();
+
+	if (!pVar)
+		return;
 	
+
+//	if (pVar->type == tigArray) {
+//		int index = stack.pop().getIntValue();
+//		pVar->pArray->elements[index] = value;
+//	}
+//	else
+		*pVar = value;
+}
+
+CTigVar* CTigVM::resolveVariableAddress() {
+	int varId = stack.pop().getIntValue();
 
 	CTigVar* pVar = NULL; int objectId = NULL;
 
@@ -376,7 +397,7 @@ void CTigVM::assign() {
 		pVar = &stack.local(varId);
 	}
 	else { //not a local variable
-		objectId = stack.pop().getIntValue();
+		int objectId = stack.pop().getIntValue();
 		if (objectId == zeroObject) {
 			objectId = currentObject;
 			auto it = objects[objectId].members.find(varId);
@@ -395,21 +416,12 @@ void CTigVM::assign() {
 		}
 	}
 
-	CTigVar value = stack.pop();
-
 	if (!pVar) {
-		cerr << "\nError! Attempt to assign value " << value.getStringValue() <<
-			" to non-existent member " << varId << " of object " << objectId;
-		return;
+		cerr << "\nError! Attempt to access non-existent member " << varId << " of object " << objectId;
 	}
-
-//	if (pVar->type == tigArray) {
-//		int index = stack.pop().getIntValue();
-//		pVar->pArray->elements[index] = value;
-//	}
-//	else
-		*pVar = value;
+	return pVar;
 }
+
 
 /** Go into 'awaiting string from user' mode. */
 void CTigVM::getString() {
@@ -431,8 +443,11 @@ void CTigVM::add() {
 			intResult += op2.getIntValue();
 		else if (op2.type == tigFloat)
 			intResult += (int)op2.getFloatValue();
-		else if (op2.type == tigString)
-			intResult += std::stoi(op2.getStringValue());
+		else if (op2.type == tigString) {
+			//intResult += std::stoi(op2.getStringValue());
+			stack.push(op1.getStringValue() + op2.getStringValue());
+			return;
+		}
 		else if (op2.type == tigObj) {
 			stack.push(result);
 			return;
@@ -462,33 +477,11 @@ void CTigVM::sub() {
 	CTigVar op1 = stack.pop();
 	CTigVar result(tigUndefined);
 
-	if (op1.type == tigInt) {
-		int intResult = op1.getIntValue();
-		if (op2.type == tigInt)
-			intResult -= op2.getIntValue();
-		else if (op2.type == tigFloat)
-			intResult -= (int)op2.getFloatValue();
-		else if (op2.type == tigString)
-			intResult -= std::stoi(op2.getStringValue());
-		else if (op2.type == tigObj) {
-			stack.push(result);
-			return;
-		}
-		result.setIntValue(intResult);
+	if (op1.type == tigFloat) {
+		result = op1.getFloatValue() - op2.getFloatValue();
 	}
-	else if (op1.type == tigFloat) {
-		float floatResult = op1.getFloatValue();
-		if (op2.type == tigInt)
-			floatResult -= op2.getIntValue();
-		else if (op2.type == tigFloat)
-			floatResult -= op2.getFloatValue();
-		else if (op2.type == tigString)
-			floatResult -= std::stof(op2.getStringValue());
-		else if (op2.type == tigObj) {
-			stack.push(result);
-			return;
-		}
-		result.setFloatValue(floatResult);
+	else {
+		result = op1.getIntValue() - op2.getIntValue();
 	}
 	stack.push(result);
 }
@@ -689,7 +682,7 @@ void CTigVM::hot() {
 	int memberId = stack.pop().getIntValue();
 	std::string text = stack.pop().getStringValue();
 	hotText(text, memberId , objId);
-	hotTexts.push_back({ text, memberId, objId });
+	hotTexts.push_back({ text, memberId, objId,false });
 }
 
 /** Ask the user to remove any hot text with the given values. */
@@ -706,21 +699,13 @@ void CTigVM::initArray() {
 	newArray.setArray();
 	int arraySize = readWord();
 	newArray.pArray->elements.resize(arraySize);
-	for (auto &element : newArray.pArray->elements) {
-		TigVarType type = (TigVarType)readByte();
-		switch (type) {
-		case tigString:
-			element.setStringValue(readString()); break;
-		case tigInt:
-			element.setIntValue(readWord()); break;
-		case tigObj:
-			element.setObjId(readWord()); break;
-		case tigUndefined:
-			readWord(); //can just throw this away
-			break;
-		}
+	//for (auto &element : newArray.pArray->elements) {
+	for (int x= arraySize-1; x >= 0; x--) {
+		newArray.pArray->elements[x] = stack.pop();
+	
 	}
 	stack.push(newArray);
+	return;
 }
 
 /** Push the value in given array element onto the stack for further processing. */
@@ -805,6 +790,8 @@ void CTigVM::assignElem() {
 void CTigVM::arrayIt() {
 	int resumeAddr = readWord();
 	int index = stack.top(-1).getIntValue();
+	if (index == 3)
+		int b = 0;
 	if (index < stack.top(0).getArraySize()) {
 		stack.push(stack.top(0).pArray->elements[index]);
 		stack.top(-2) = ++index;
@@ -824,76 +811,27 @@ void CTigVM::pop() {
 void CTigVM::compEq() {
 	CTigVar op2 = stack.pop();
 	CTigVar op1 = stack.pop();
-	int result = 0;
-	if (op1.type == tigObj && op2.type == tigObj) {
-		result = op1.getObjId() == op2.getObjId();
-	}
-	else if (op1.type == tigInt && op2.type == tigInt) {
-		result = op1.getIntValue() == op2.getIntValue();
-	}
-	else if (op1.type == tigInt && op2.type == tigFloat) {
-		result = op1.getIntValue() == op2.getFloatValue();
-	}
-	else if (op1.type == tigFloat && op2.type == tigInt) {
-		result = op1.getFloatValue() == op2.getIntValue();
-	}
-	else if (op1.type == tigFloat && op2.type == tigFloat) {
-		result = op1.getFloatValue() == op2.getFloatValue();
-	} 
-	else if (op1.type == tigString && op2.type == tigString) {
-		result = op1.getStringValue() == op2.getStringValue();
-	}
-
-	stack.push(result);
+	
+	stack.push(op1 == op2);
 }
 
 void CTigVM::compNE() {
 	CTigVar op2 = stack.pop();
 	CTigVar op1 = stack.pop();
-	int result = true;
-	if (op1.type == tigObj && op2.type == tigObj) {
-		result = op1.getObjId() != op2.getObjId();
-	}	
-	else if (op1.type == tigInt && op2.type == tigInt ) {
-		result = op1.getIntValue() != op2.getIntValue();
-	}
-	else if (op1.type == tigInt && op2.type == tigFloat) {
-		result = op1.getIntValue() != op2.getFloatValue();
-	}
-	else if (op1.type == tigFloat && op2.type == tigInt) {
-		result = op1.getFloatValue() != op2.getIntValue();
-	}
-	else if (op1.type == tigFloat && op2.type == tigFloat) {
-		result = op1.getFloatValue() != op2.getFloatValue();
-	}
-	else if (op1.type == tigString && op2.type == tigString) {
-		result = op1.getStringValue() != op2.getStringValue();
-	}
 
-	stack.push(result);
+	stack.push(op1 != op2);
 }
 
 void CTigVM::compLT() {
 	CTigVar op2 = stack.pop();
 	CTigVar op1 = stack.pop();
-	int result = 0;
-	if (op1.type == tigInt && op2.type == tigInt) {
-		result = op1.getIntValue() < op2.getIntValue();
-	}
-	else if (op1.type == tigInt && op2.type == tigFloat) {
-		result = op1.getIntValue() < op2.getFloatValue();
-	}
-	else if (op1.type == tigFloat && op2.type == tigInt) {
-		result = op1.getFloatValue() < op2.getIntValue();
-	}
-	else if (op1.type == tigFloat && op2.type == tigFloat) {
-		result = op1.getFloatValue() < op2.getFloatValue();
-	}
-	else if (op1.type == tigString && op2.type == tigString) {
-		result = op1.getStringValue() < op2.getStringValue();
-	}
+	stack.push(op1 < op2);
+}
 
-	stack.push(result);
+void CTigVM::compGT() {
+	CTigVar op2 = stack.pop();
+	CTigVar op1 = stack.pop();
+	stack.push(op1 > op2);
 }
 
 /** Jump unconditionally. */
@@ -927,7 +865,9 @@ void CTigVM::sibling() {
 void CTigVM::getVar() {
 	int varId = stack.pop().getIntValue();
 	if (varId < memberIdStart) { //local variable
-		stack.push(stack.local(varId));
+		CTigVar localVar = stack.local(varId);
+		stack.push(localVar);
+		////////////////Local var start not initialised
 		return;
 	}
 
@@ -1043,6 +983,43 @@ void CTigVM::inherits() {
 
 void CTigVM::hotClr() {
 	hotTexts.clear();
+}
+
+void CTigVM::hotCheck() {
+	std:string text = stack.pop().getStringValue();
+	for (auto hotText : hotTexts) {
+		if (hotText.text == text && hotText.used) {
+			stack.push(1);
+			return;
+		}
+	}
+	stack.push(0);
+}
+
+void CTigVM::not() {
+	CTigVar value = stack.pop();
+	stack.push(!value.getIntValue());
+}
+
+void CTigVM::and() {
+	CTigVar op1 = stack.pop();
+	CTigVar op2 = stack.pop();
+	stack.push(op1.getIntValue() && op2.getIntValue());
+}
+
+void CTigVM::or() {
+	CTigVar op1 = stack.pop();
+	CTigVar op2 = stack.pop();
+	stack.push(op1.getIntValue() || op2.getIntValue());
+}
+
+
+void CTigVM::arrayPush() {
+	CTigVar* pVar = resolveVariableAddress();
+	CTigVar value = stack.pop();
+	if (pVar->type != tigArray)
+		pVar->setArray();
+	pVar->pArray->elements.push_back(value);
 }
 
 
@@ -1287,16 +1264,19 @@ int CTigVM::getObjectId(CObjInstance * obj) {
 
 /** Printer's devil: replaces any instances of hot text with hot text markup. */
 std::string CTigVM::devil(std::string text) {
-	for (auto hotText : hotTexts) {
-		size_t found = text.find(hotText.text);
-		while (found != std::string::npos) { //found, but check it isn't part of a bigger word:
-			if ((found == 0 || !isalnum(text[found - 1])) && !isalnum(text[found + hotText.text.size()])) {
-				std::string hotStr = "\\h{" + std::to_string(hotText.msgId) + '@' + std::to_string(hotText.objId) + "}";
-				hotStr += hotText.text + "\\h";
-				text.replace(found, hotText.text.size(), hotStr);
-				break; //don't look again
+	for (auto& hotText : hotTexts) {
+		if (!hotText.used) {
+			size_t found = text.find(hotText.text);
+			while (found != std::string::npos) { //found, but check it isn't part of a bigger word:
+				if ((found == 0 || !isalnum(text[found - 1])) && !isalnum(text[found + hotText.text.size()])) {
+					std::string hotStr = "\\h{" + std::to_string(hotText.msgId) + '@' + std::to_string(hotText.objId) + "}";
+					hotStr += hotText.text + "\\h";
+					text.replace(found, hotText.text.size(), hotStr);
+					hotText.used = true;
+					break; //don't look again
+				}
+				found = text.find(hotText.text, found + hotText.text.size());
 			}
-			found = text.find(hotText.text, found + hotText.text.size());
 		}
 	}
 	return text;

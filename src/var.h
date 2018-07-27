@@ -24,6 +24,10 @@ public:
 	void operator = (const std::string& var2);
 	void operator = (const CArray& var2);
 	void operator = (const CTigVar& var2);
+	bool operator == ( CTigVar& var2);
+	bool operator != (CTigVar& var2);
+	bool operator > (CTigVar& var2);
+	bool operator < (CTigVar& var2);
 	void resetSharedPointers();
 	//~CTigVar() {};
 	void setStringValue(const std::string& string);
@@ -39,6 +43,7 @@ public:
 	int getObjId();
 	int getArraySize();
 
+
 	TigVarType type;
 	std::shared_ptr<std::string> pStrValue;
 	union {
@@ -49,4 +54,7 @@ public:
 		int funcAddress;
 	};
 	std::shared_ptr<CArray> pArray;
+
+private:
+	bool cmpArray(CTigVar& var2);
 };

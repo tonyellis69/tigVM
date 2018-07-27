@@ -42,6 +42,11 @@ CTigVar CStack::pop() {
 	return word;
 }
 
+CTigVar & CStack::local(int var) {
+	int  x = localVarStart;
+	return stack[localVarStart + var]; 
+}
+
 /** Reserve space for the current frame's local variables. */
 void CStack::reserveLocalVars(int varCount) {
 	CTigVar currentLocalVarStart(localVarStart);
