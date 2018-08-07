@@ -1,4 +1,5 @@
 #include "var.h"
+#include <iostream>
 
 CTigVar::CTigVar(const CTigVar & var2) {
 	type = var2.type;
@@ -126,6 +127,15 @@ bool CTigVar::operator<(CTigVar & var2) {
 		return getIntValue() < var2.getIntValue();
 }
 
+CTigVar CTigVar::operator-() {
+	if (type == tigInt)
+		return CTigVar(-intValue);
+	else if (type == tigFloat)
+		return CTigVar(-floatValue);
+	std::cerr << "\nError: unary minus used with non-numeric variable.";
+	return CTigVar(tigUndefined);
+}
+
 
 
 
@@ -177,6 +187,8 @@ std::string CTigVar::getStringValue() {
 		return std::to_string(intValue);
 	if (type == tigFloat)
 		return std::to_string(floatValue);
+	if (type == tigObj)
+		return "object " + std::to_string(intValue);
 	setStringValue(std::string( "##Undefined!##"));
 	return *pStrValue;
 }

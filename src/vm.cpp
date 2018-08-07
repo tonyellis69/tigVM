@@ -200,6 +200,8 @@ void CTigVM::execute() {
 		case opGetString: getString(); break;
 		case opAdd: add(); break;
 		case opSub: sub(); break;
+		case opMod: mod(); break;
+		case opMinus: minus(); break;
 		case opGiveOptions: giveOptions(); break;
 		case opJumpEvent: jumpEvent(); break;
 		case opStartTimer: startTimer(); break;
@@ -231,6 +233,7 @@ void CTigVM::execute() {
 		case opMakeHot: makeHot(); break;
 		case opBrk: brk(); break;
 		case opMove: move(); break;
+		case opOpenWin: openWin(); break;
 		case opWin: win(); break;
 		case opClr: clr(); break;
 		case opStyle: style(); break;
@@ -242,6 +245,7 @@ void CTigVM::execute() {
 		case opAnd: and(); break;
 		case opOr: or(); break;
 		case opArrayPush: arrayPush(); break;
+		case opMsg: msg(); break;
 		}
 	}
 	if (pc >= progBufSize)
@@ -347,8 +351,11 @@ void CTigVM::pushVar() {
 void CTigVM::print() {
 	std::string text = stack.pop().getStringValue();
 	text = devil(text);
-
-	writeText(text);
+	if (text.size() == 0)
+		return;
+	
+	latestText = text;
+	writeText(latestText);
 }
 
 /** Record the following option for later processing. */
@@ -374,18 +381,17 @@ void CTigVM::end() {
 /** Pop a value off the stack and assign it to a variable. */
 void CTigVM::assign() {
 	CTigVar* pVar = resolveVariableAddress(); 
-	CTigVar value = stack.pop();
+	//CTigVar value = stack.pop();
 
 	if (!pVar)
 		return;
 	
-
-//	if (pVar->type == tigArray) {
-//		int index = stack.pop().getIntValue();
-//		pVar->pArray->elements[index] = value;
-//	}
-//	else
-		*pVar = value;
+	if (pVar->type == tigArray) {
+		int index = stack.pop().getIntValue();
+		pVar->pArray->elements[index] = stack.pop();
+	}
+	else
+		*pVar = stack.pop();
 }
 
 CTigVar* CTigVM::resolveVariableAddress() {
@@ -486,6 +492,25 @@ void CTigVM::sub() {
 	stack.push(result);
 }
 
+/** Pop the top two values off the stack, mod, and push the result. */
+void CTigVM::mod() {
+	CTigVar op2 = stack.pop();
+	CTigVar op1 = stack.pop();
+	CTigVar result(tigUndefined);
+
+	if (op1.type == tigFloat) {
+		result = fmod(op1.getFloatValue(), op2.getFloatValue());
+	}
+	else {
+		result = op1.getIntValue() % op2.getIntValue();
+	}
+	stack.push(result);
+}
+
+void CTigVM::minus() {
+	stack.top(0) = -stack.top(0);
+}
+
 /** Jump execution to the following event, never to return. */
 void CTigVM::jumpEvent() {
 	int eventId = readWord();
@@ -520,36 +545,54 @@ void CTigVM::pushSelf() {
 
 /** Execute the member function currently on the stack, leaving the returned value on the stack. */
 void CTigVM::call() {
-	int obj = stack.pop().getObjId();
 	int memberId = readWord();
 	int paramCount = readByte();
-	if (obj == zeroObject)
-		obj = currentObject;
+	CTigVar* callee = NULL; int obj = 0;
+
+	if (memberId < memberIdStart) { //local var
+		callee = &stack.local(memberId);
+	}
+	else {
+		int op1 = stack.pop().getObjId();
+		obj = op1;
+		if (obj == zeroObject)
+			obj = currentObject;
+
+		auto fnMember = objects[obj].members.find(memberId);
+		if (fnMember != objects[obj].members.end()) { //it's a local member
+			callee = &fnMember->second;
+		}
+		else if (op1 == zeroObject) { //could be global
+			fnMember = objects[zeroObject].members.find(memberId);
+			if (fnMember != objects[zeroObject].members.end()) {
+				callee = &fnMember->second;
+			}
+		}
+
+	}
 
 	std::vector<CTigVar> params(paramCount);
 	for (int p = 0; p < paramCount; p++) {
 		params[p] = stack.pop();
 	}
 
-	CTigVar callee;
-	auto fnMember = objects[obj].members.find(memberId);
-	if (fnMember == objects[obj].members.end()) { //not a member function of obj
-		callee = objects[zeroObject].members[memberId];
-	}
-	else
-		callee = fnMember->second;
-
-	if (callee.type != tigFunc) {
-		stack.push(callee);
+	if (callee == NULL) {
+		stack.pushUndefined();
 		return;
 	}
+
+	if (callee->type != tigFunc) {
+		stack.push(*callee);
+		return;
+	}
+
 
 	stack.push(currentObject);
 	stack.push(pc); //save return address
 
 	currentObject = obj;
 
-	pc = callee.getFuncAddress();
+	pc = callee->getFuncAddress();
 
 	int varCount = readByte();
 	stack.reserveLocalVars(varCount);
@@ -562,32 +605,52 @@ void CTigVM::call() {
 void CTigVM::callDeref() {
 	int memberId = stack.pop().getIntValue();
 	int paramCount = readByte();
+	CTigVar* callee = NULL; int obj = 0;
+
+	if (memberId < memberIdStart) { //local var
+		callee = &stack.local(memberId);
+	}
+	else {
+		int op1 = stack.pop().getObjId();
+		obj = op1;
+		if (obj == zeroObject)
+			obj = currentObject;
+
+		auto fnMember = objects[obj].members.find(memberId);
+		if (fnMember != objects[obj].members.end()) { //it's a local member
+			callee = &fnMember->second;
+		}
+		else if (op1 == zeroObject) { //could be global
+			fnMember = objects[zeroObject].members.find(memberId);
+			if (fnMember != objects[zeroObject].members.end()) {
+				callee = &fnMember->second;
+			}
+		}
+
+	}
 
 	std::vector<CTigVar> params(paramCount);
 	for (int p = 0; p < paramCount; p++) {
 		params[p] = stack.pop();
 	}
 
-	CTigVar callee;
-	auto fnMember = objects[currentObject].members.find(memberId);
-	if (fnMember != objects[currentObject].members.end()) {
-		callee = objects[currentObject].members[memberId];
-	}
-	else {
-		cerr << "\nDeference to nonexistent member " << memberId << " of object " << currentObject;
+	if (callee == NULL) {
 		stack.pushUndefined();
 		return;
 	}
 
-	if (callee.type != tigFunc) {
-		stack.push(callee);
+	if (callee->type != tigFunc) {
+		stack.push(*callee);
 		return;
 	}
+
 
 	stack.push(currentObject);
 	stack.push(pc); //save return address
 
-	pc = callee.getFuncAddress();
+	currentObject = obj;
+
+	pc = callee->getFuncAddress();
 
 	int varCount = readByte();
 	stack.reserveLocalVars(varCount);
@@ -595,6 +658,7 @@ void CTigVM::callDeref() {
 	for (int p = 0; p < paramCount; p++) {
 		stack.local(p) = params[(paramCount - 1) - p];
 	}
+
 
 }
 
@@ -803,8 +867,12 @@ void CTigVM::arrayIt() {
 	}
 }
 
+/** Pop the top value off the stack, printing it if it's a string. */
 void CTigVM::pop() {
-	stack.pop();
+	if (stack.top(0).type == tigString)
+		print();
+	else
+		stack.pop();
 }
 
 /** Compare the top 2 values on the stack for equality. */
@@ -929,15 +997,18 @@ void CTigVM::move() {
 	CObjInstance* childObj = &objects[objParent->members[childId].getObjId()];
 	CObjInstance* olderSibling = NULL;
 
-	while (childObj != obj) {
-		olderSibling = childObj;
-		childObj = &objects[childObj->members[siblingId].getObjId()];
-	}
+	if (objParent->id) {
+		while (childObj != obj) {
+			olderSibling = childObj;
+			childObj = &objects[childObj->members[siblingId].getObjId()];
+		}
 
-	if (olderSibling)
-		olderSibling->members[siblingId] = obj->members[siblingId];
-	else
-		objParent->members[childId] = obj->members[siblingId];
+		if (olderSibling)
+			olderSibling->members[siblingId] = obj->members[siblingId];
+		else
+			objParent->members[childId] = obj->members[siblingId];
+
+	}
 
 	int destChild = newParentObj->members[childId].getObjId();
 
@@ -948,6 +1019,12 @@ void CTigVM::move() {
 
 	newParentObj->members[childId].setObjId(objId);
 	obj->members[parentId].setObjId(newParentId);
+}
+
+/** Tell user app we want to open a window. */
+void CTigVM::openWin() {
+	int objId = stack.pop().getObjId();
+	openWindow(objId);
 }
 
 /** Set the window we're outputting to. */
@@ -1020,6 +1097,16 @@ void CTigVM::arrayPush() {
 	if (pVar->type != tigArray)
 		pVar->setArray();
 	pVar->pArray->elements.push_back(value);
+}
+
+void CTigVM::msg() {
+	int paramCount = readByte();
+	std::vector<CTigVar> params(paramCount);
+	for (int p = 0; p < paramCount; p++) {
+		params[p] = stack.pop();
+	}
+	messageApp(params[1].getIntValue(), params[0].getIntValue());
+	params.clear();
 }
 
 
@@ -1181,6 +1268,35 @@ CTigVar CTigVM::executeObjMember(CTigVar & ObjMember) {
 	return ObjMember; //This may not be the best default action...
 }
 
+CTigVar CTigVM::callMember(int objId, std::string msgName, initializer_list<CTigVar> params) {
+	int memberId = getMemberId(msgName);
+	CTigVar* objMember = &objects[objId].members[memberId];
+
+	if (objMember->type == tigString)
+		return *objMember;
+
+	if (objMember->type == tigFunc) {
+		int addr = objMember->getFuncAddress();
+		stack.push(NULL); //dummy calling object
+		stack.push(NULL); //dummy start position
+		currentObject = objId;
+		pc = addr;
+		int varCount = readByte();
+		stack.reserveLocalVars(varCount);
+
+		int x = 0;
+		for (auto param : params) 
+			stack.local(x++) = param;
+	
+		status = vmExecuting;
+		execute();
+		return stack.pop();
+	}
+
+	//TO DO: handle other types
+	return CTigVar();
+}
+
 std::string CTigVM::getMemberName(int memberId) {
 	return memberNames[memberId - memberIdStart];
 }
@@ -1262,8 +1378,34 @@ int CTigVM::getObjectId(CObjInstance * obj) {
 	return distance(objects.begin(), it)-1;
 }
 
-/** Printer's devil: replaces any instances of hot text with hot text markup. */
+/** Printer's devil: replaces any instances of hot text with hot text markup, and does a little tidying. */
 std::string CTigVM::devil(std::string text) {
+	//don't print redundant full stop.
+	if (text[0] == '.') {
+		auto endChar = latestText.find_last_not_of(" ");
+		if (endChar != std::string::npos) {
+			if (latestText[endChar] == '.') {
+				text.erase(0,  text.find_first_not_of(" ",1));
+			}
+		}
+	}
+
+	if (text.size() == 0)
+		return text;
+
+	//if text starts with a comma
+	//and the last text ended with a full stop
+	//snip the comma, capitalise
+	if (text[0] == ',') {
+		auto endChar = latestText.find_last_not_of(" ");
+		if (endChar != std::string::npos) {
+			if (latestText[endChar] == '.') {
+				text.erase(0, text.find_first_not_of(" ", 1));
+				text[0] = toupper(text[0]);
+			}
+		}
+	}
+
 	for (auto& hotText : hotTexts) {
 		if (!hotText.used) {
 			size_t found = text.find(hotText.text);
@@ -1279,5 +1421,11 @@ std::string CTigVM::devil(std::string text) {
 			}
 		}
 	}
+
+	//tidying
+	if (text.back() == '.')
+		text += " ";
+
 	return text;
 }
+

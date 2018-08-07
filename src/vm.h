@@ -6,6 +6,7 @@
 #include <ctime>
 #include <iostream>
 #include <fstream>
+#include <list>
 
 #include "stack.h"
 #include "daemon.h"
@@ -81,6 +82,8 @@ public:
 	void getString();
 	void add();
 	void sub();
+	void mod();
+	void minus();
 	void jumpEvent();
 	void startTimer();
 	void createTimedEvent();
@@ -111,6 +114,7 @@ public:
 	void makeHot();
 	void brk();
 	void move();
+	void openWin();
 	void win();
 	void clr();
 	void style();
@@ -122,6 +126,7 @@ public:
 	void and();
 	void or();
 	void arrayPush();
+	void msg();
 
 	CTigVar * resolveVariableAddress();
 	TVMstatus getStatus();
@@ -131,6 +136,8 @@ public:
 	virtual void hotText(std::string& text, int memberId, int objectId) {};
 	virtual void purge(int memberId, int objId) {};
 	virtual void clearWin() {};
+	virtual void openWindow(int objId) {};
+	virtual void messageApp(int p1, int p2) {};
 	
 	CTigVar getGlobalVar(std::string varName);
 	CTigVar getMember(CTigVar & obj, int memberId);
@@ -144,6 +151,9 @@ public:
 	CTigVar objMessage(CTigVar & obj, std::string fnName);
 	CTigVar objMessage(CObjInstance * obj, std::string fnName);
 	CTigVar executeObjMember(CTigVar & ObjMember);
+	//template <typename... Args>
+	//template <class T>
+	CTigVar callMember(int objId, std::string msgName, std::initializer_list<CTigVar> params);
 	std::string getMemberName(int memberId);
 	int getMemberValue(int objNo,int memberId);
 	int getMemberValue(int objNo, std::string memberName);
@@ -188,4 +198,6 @@ public:
 	int window; ///<The output we're currently writing to.
 
 	std::vector<THotTExt> hotTexts; ///<The list of known hot texts, if any, for the devil to look out for.
+
+	std::string latestText; ///<The most recent text sent to output.
 };

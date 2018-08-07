@@ -40,6 +40,21 @@ void CVMapp::clearWin() {
 	pApp->vmMessage(msg);
 }
 
+void CVMapp::openWindow(int objId) {
+	TvmAppMsg msg;
+	msg.type = appOpenWin;
+	msg.integer = objId;
+	pApp->vmMessage(msg);
+}
+
+void CVMapp::messageApp(int p1, int p2) {
+	TvmAppMsg msg;
+	msg.type = appMsg;
+	msg.integer = p1;
+	msg.integer2 = p2;
+	pApp->vmMessage(msg);
+}
+
 
 
 

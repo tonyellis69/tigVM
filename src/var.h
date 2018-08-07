@@ -28,6 +28,7 @@ public:
 	bool operator != (CTigVar& var2);
 	bool operator > (CTigVar& var2);
 	bool operator < (CTigVar& var2);
+	CTigVar operator - ();
 	void resetSharedPointers();
 	//~CTigVar() {};
 	void setStringValue(const std::string& string);
