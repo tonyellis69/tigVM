@@ -29,10 +29,9 @@ bool CTigVM::loadProgFile(std::string filename) {
 	progFile.read(progBuf, progBufSize);
 
 	readEventTable(progFile);
-	//readGlobalVarTable(progFile);
 	readObjectDefTable(progFile);
 	readMemberNameTable(progFile);
-	//readGlobalFnTable(progFile);
+
 
 	initIds();
 
@@ -169,20 +168,6 @@ void CTigVM::readMemberNameTable(std::ifstream & progFile) {
 	}
 }
 
-/** Read the list of global function addresses and store them. */
-/*
-void CTigVM::readGlobalFnTable(std::ifstream & progFile) {
-	int fnTableSize;
-	progFile.read((char*)&fnTableSize, 4);
-	//globalFuncs.resize(fnTableSize);
-	//for (auto &addr : globalFuncs) {
-	for (int f=0; f < fnTableSize; f++) {
-		int id, addr;
-		progFile.read((char*)&id, 4);
-		progFile.read((char*)&addr, 4);
-		globalFuncs[id] = addr;
-	}
-}*/
 
 /** Execute the currently loaded program starting at the current program counter position. */
 void CTigVM::execute() {
@@ -228,6 +213,8 @@ void CTigVM::execute() {
 		case opJumpFalse: jumpFalse(); break;
 		case opChild: child(); break;
 		case opSibling: sibling(); break;
+		case opIn: in(); break;
+		case opNotIn: notIn(); break;
 		case opGetVar: getVar(); break;
 		case opChildren: children(); break;
 		case opMakeHot: makeHot(); break;
@@ -246,6 +233,7 @@ void CTigVM::execute() {
 		case opOr: or(); break;
 		case opArrayPush: arrayPush(); break;
 		case opMsg: msg(); break;
+		case opHas: has(); break; 
 		}
 	}
 	if (pc >= progBufSize)
@@ -694,28 +682,6 @@ void CTigVM::superCall() {
 }
 
 
-/*
-void CTigVM::callFn() {
-	int funcNo = readWord();
-	int paramCount = readByte();
-
-	std::vector<CTigVar> params(paramCount);
-	for (int p = 0; p < paramCount; p++) {
-		params[p] = stack.pop();
-	}
- 
-	stack.push(currentObject);
-	stack.push(pc); //save return address
-
-	pc = globalFuncs[funcNo];
-	int varCount = readByte();
-	stack.reserveLocalVars(varCount);
-
-	for (int p = 0; p < paramCount; p++) {
-		stack.local(p) = params[(paramCount-1) - p ];
-	}
-}
-*/
 
 /** Return execution to the calling address left on the stack, leaving the current top value at the top. */
 void CTigVM::returnOp() {
@@ -745,7 +711,7 @@ void CTigVM::hot() {
 	int objId = stack.pop().getIntValue();
 	int memberId = stack.pop().getIntValue();
 	std::string text = stack.pop().getStringValue();
-	hotText(text, memberId , objId);
+	//hotText(text, memberId , objId);
 	hotTexts.push_back({ text, memberId, objId,false });
 }
 
@@ -929,6 +895,26 @@ void CTigVM::sibling() {
 	stack.push(result);
 }
 
+void CTigVM::in() {
+	int container = stack.pop().getObjId();
+	int obj = stack.pop().getObjId();
+
+	int containerChild = getMemberInt(container, childId);
+	while (containerChild != 0) {
+		if (containerChild == obj) {
+			stack.push(1);
+			return;
+		}
+		containerChild = getMemberInt(containerChild, siblingId);
+	}
+	stack.push(0);
+}
+
+void CTigVM::notIn() {
+	in();
+	stack.top(0).setIntValue(!stack.top(0).getIntValue());
+}
+
 /** Get the contents of the variable identified by the stack, and leave it on the stack. */
 void CTigVM::getVar() {
 	int varId = stack.pop().getIntValue();
@@ -964,10 +950,10 @@ void CTigVM::getVar() {
 void CTigVM::children() {
 	int objId = stack.pop().getObjId();
 	int count = 0;
-	CTigVar childObj = getMember(objId, childId);
-	while (childObj.getObjId() != 0) {
+	int childObjId = getMemberInt(objId, childId);
+	while (childObjId != 0) {
 		count++;
-		childObj = getMember(childObj, siblingId);
+		childObjId = getMemberInt(childObjId, siblingId);
 	}
 	stack.push(count);
 }
@@ -1052,7 +1038,7 @@ void CTigVM::inherits() {
 	int classId = stack.pop().getObjId();
 	int objId = stack.pop().getObjId();
 
-	if (inheritsFrom(&objects[objId], &objects[classId]))
+	if (inheritsFrom(objId, classId))
 		stack.push(1);
 	else
 		stack.push(0);
@@ -1109,6 +1095,13 @@ void CTigVM::msg() {
 	params.clear();
 }
 
+/** True if the given object has the given member. */
+void CTigVM::has() {
+	int memberId = stack.pop().getIntValue();
+	int objId = stack.pop().getObjId();
+	stack.push(hasMember(objId, memberId));
+}
+
 
 
 TVMstatus CTigVM::getStatus() {
@@ -1142,14 +1135,6 @@ void CTigVM::sendMessage(const TVMmsg& msg) {
 	}
 }
 
-/* old way to do it, preserved for reference.
-struct find_varName {
-	std::string name;
-	find_varName(std::string& name) : name(name) {}
-	bool operator () (const TGlobalVarNameRec& nameRec) const	{
-		return nameRec.name == name;
-	}
-}; */
 
 /** Return the value of the named global variable, if found. */
 CTigVar CTigVM::getGlobalVar(std::string varName) {
@@ -1170,13 +1155,8 @@ CTigVar CTigVM::getGlobalVar(std::string varName) {
 	return var;
 }
 
-/** Return a copy of the identified member. */
-CTigVar CTigVM::getMember(CTigVar & obj, int memberId) {
-	return objects[obj.getObjId()].members[memberId];
-}
 
 /** Return a copy of the identified member. */
-//////////////////////////Try to use this and remove others!!!!!!!!!!!!!!!!!!
 CTigVar CTigVM::getMember(int objNo, int memberId) {
 	CObjInstance* obj = &objects[objNo];
 	if (obj->members.find(memberId) == obj->members.end()) {
@@ -1186,14 +1166,8 @@ CTigVar CTigVM::getMember(int objNo, int memberId) {
 	return obj->members[memberId];
 }
 
-/** Return a copy of the named member. */
-CTigVar CTigVM::getMember(CTigVar & obj, std::string fnName) {
-	int memberNo = getMemberId(fnName);
-	return objects[obj.getObjId()].members[memberNo];
-}
-
-CTigVar CTigVM::getMember(CObjInstance * obj, int memberId) {
-	return obj->members[memberId];
+int CTigVM::getMemberInt(int objNo, int memberId) {
+	return getMember(objNo, memberId).getIntValue();
 }
 
 /** Return the member id of the named member. */
@@ -1210,66 +1184,8 @@ int CTigVM::getMemberId(std::string name) {
 }
 
 
-/** Execute the identified object member. */
-CTigVar CTigVM::objMessage(CTigVar & obj, int memberId) {
-	CTigVar member = getMember(obj, memberId);
-	currentObject = obj.getObjId();
-	return executeObjMember(member);
-}
-
-CTigVar CTigVM::objMessage(int objNo, int memberId) {
-	CTigVar member = getMember(objNo, memberId);
-	currentObject = objNo;
-	return executeObjMember(member);
-}
-
-CTigVar CTigVM::objMessage(int objNo, std::string fnName) {
-	int memberNo = getMemberId(fnName);
-	CTigVar member = getMember(objNo, memberNo);
-	currentObject = objNo;
-	return executeObjMember(member);
-}
-
-/** Execute the named object member. */
-CTigVar CTigVM::objMessage(CTigVar & obj, std::string fnName) {
-	CTigVar member = getMember(obj, fnName);
-	currentObject = obj.getObjId();
-	return executeObjMember(member);
-}
-
-CTigVar CTigVM::objMessage(CObjInstance* obj, std::string fnName) {
-	int memberNo = getMemberId(fnName);
-	CTigVar member = getMember(obj, memberNo);
-	currentObject = obj->id;
-	return executeObjMember(member);
-}
-
-
-
-CTigVar CTigVM::executeObjMember(CTigVar & ObjMember) {
-	if (ObjMember.type == tigString) { //or int or float 
-		//writeText(ObjMember.getStringValue());
-		return ObjMember;
-	}
-	if (ObjMember.type == tigFunc) {
-
-		int addr = ObjMember.getFuncAddress();
-		stack.push(NULL); //dummy calling object
-		stack.push(NULL); //dummy start position
-		pc = addr;
-		int varCount = readByte();
-		stack.reserveLocalVars(varCount);
-		status = vmExecuting;
-		execute();
-		return stack.pop();
-		//TO DO: calling execute internally is not ideal. Might be better to just
-		//assume execution gets handled by the caller.
-	}
-	return ObjMember; //This may not be the best default action...
-}
-
-CTigVar CTigVM::callMember(int objId, std::string msgName, initializer_list<CTigVar> params) {
-	int memberId = getMemberId(msgName);
+CTigVar CTigVM::callMember(int objId, int memberId, initializer_list<CTigVar> params) {
+	
 	CTigVar* objMember = &objects[objId].members[memberId];
 
 	if (objMember->type == tigString)
@@ -1294,43 +1210,36 @@ CTigVar CTigVM::callMember(int objId, std::string msgName, initializer_list<CTig
 	}
 
 	//TO DO: handle other types
-	return CTigVar();
+	return *objMember;
 }
+
+CTigVar CTigVM::callMember(int objId, std::string msgName, initializer_list<CTigVar> params) {
+	int memberId = getMemberId(msgName);
+	return callMember(objId, memberId, params);
+}
+
+CTigVar CTigVM::callMember(int objId, std::string msgName) {
+	return callMember(objId, msgName, {});
+}
+
+CTigVar CTigVM::callMember(int objId, int msgId) {
+	return callMember(objId, msgId, {});
+}
+
+
+
 
 std::string CTigVM::getMemberName(int memberId) {
 	return memberNames[memberId - memberIdStart];
 }
 
-/** Return the given member value as an int. */
-int CTigVM::getMemberValue(int objNo, int memberId) {
-	CObjInstance* obj = &objects[objNo];
-	if (obj->members.find(memberId) == obj->members.end())
-		return 0;
-	return obj->members[memberId].getIntValue();
-}
 
-int CTigVM::getMemberValue(int objNo, std::string memberName) {
-	int memberNo = getMemberId(memberName);
-	return getMemberValue(objNo, memberNo);
-}
 
-/** Return the class of the given object.*/
-int CTigVM::getClass(int objNo) {
-//	return objects[objNo].classId;
-	return NULL;
-}
-
-bool CTigVM::inheritsFrom(CObjInstance* obj, int classId) {
-	CObjInstance* classObj = &objects[classId];
-	return inheritsFrom(obj,classObj);
-}
-
-bool CTigVM::inheritsFrom(CObjInstance* obj, CObjInstance* classObj) {
-	for (auto currentClass : obj->classIds) {
-		if (currentClass == classObj->id)
+bool CTigVM::inheritsFrom(int obj, int classObj) {
+	for (auto currentClass : objects[obj].classIds) {
+		if (currentClass == classObj)
 			return true;
-		CObjInstance* currentClassObj = &objects[currentClass];
-		if (inheritsFrom(currentClassObj, classObj))
+		if (inheritsFrom(currentClass, classObj))
 			return true;
 	}
 	return false;
@@ -1355,11 +1264,6 @@ bool CTigVM::hasMember(int objNo, int memberNo) {
 	return true;
 }
 
-bool CTigVM::hasMember(CObjInstance* obj, int memberNo) {
-	if (obj->members.find(memberNo) == obj->members.end())
-		return false;
-	return true;
-}
 
 CObjInstance * CTigVM::getObject(int objId) {
 	auto found = objects.find(objId);

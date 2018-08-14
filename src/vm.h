@@ -109,6 +109,8 @@ public:
 	void jumpFalse();
 	void child();
 	void sibling();
+	void in();
+	void notIn();
 	void getVar();
 	void children();
 	void makeHot();
@@ -127,6 +129,7 @@ public:
 	void or();
 	void arrayPush();
 	void msg();
+	void has();
 
 	CTigVar * resolveVariableAddress();
 	TVMstatus getStatus();
@@ -140,31 +143,21 @@ public:
 	virtual void messageApp(int p1, int p2) {};
 	
 	CTigVar getGlobalVar(std::string varName);
-	CTigVar getMember(CTigVar & obj, int memberId);
 	CTigVar getMember(int objNo, int memberId);
-	CTigVar getMember(CTigVar& obj, std::string fnName);
-	CTigVar getMember(CObjInstance* obj, int memberId);
+	int getMemberInt(int objNo, int memberId);
 	int getMemberId(std::string  name);
-	CTigVar objMessage(CTigVar & obj, int memberId);
-	CTigVar objMessage(int objNo, int memberId);
-	CTigVar objMessage(int objNo, std::string fnName);
-	CTigVar objMessage(CTigVar & obj, std::string fnName);
-	CTigVar objMessage(CObjInstance * obj, std::string fnName);
-	CTigVar executeObjMember(CTigVar & ObjMember);
-	//template <typename... Args>
-	//template <class T>
+
+	CTigVar callMember(int objId, int memberId, std::initializer_list<CTigVar> params);
 	CTigVar callMember(int objId, std::string msgName, std::initializer_list<CTigVar> params);
+	CTigVar callMember(int objId, std::string msgName);
+	CTigVar callMember(int objId, int msgId);
 	std::string getMemberName(int memberId);
-	int getMemberValue(int objNo,int memberId);
-	int getMemberValue(int objNo, std::string memberName);
-	int getClass(int objNo);
-	bool inheritsFrom(CObjInstance * obj, int classId);
-	bool inheritsFrom(CObjInstance * obj, CObjInstance * classObj);
+
+	bool inheritsFrom(int obj, int classObj);
 
 	void setMemberValue(int objNo, std::string memberName, CTigVar& value);
 
 	bool hasMember(int objNo, int memberNo);
-	bool hasMember(CObjInstance * obj, int memberNo);
 
 	CObjInstance* getObject(int objId);
 	int getObjectId(CObjInstance* obj);
@@ -182,7 +175,6 @@ public:
 	std::vector<TOptionRec> currentOptionList; ///<A list of user options
 	std::map<int, CObjInstance> objects; ///<Object instances.
 	std::vector<std::string> memberNames; ///<Member names in id number order.
-//	std::map<int,int> globalFuncs; ///<Addresses of global functions in id order.
 
 	CStack stack; ///<The virtual machine stack.
 
