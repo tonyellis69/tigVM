@@ -462,6 +462,10 @@ void CTigVM::add() {
 		}
 		result.setFloatValue(floatResult);
 	}
+	if (op1.type == tigArray) {
+		result = op1;
+		result.pArray->elements.push_back(op2);
+	}
 	stack.push(result);
 }
 
@@ -1284,15 +1288,16 @@ int CTigVM::getObjectId(CObjInstance * obj) {
 
 /** Printer's devil: replaces any instances of hot text with hot text markup, and does a little tidying. */
 std::string CTigVM::devil(std::string text) {
-	//don't print redundant full stop.
-	if (text[0] == '.') {
-		auto endChar = latestText.find_last_not_of(" ");
-		if (endChar != std::string::npos) {
-			if (latestText[endChar] == '.') {
-				text.erase(0,  text.find_first_not_of(" ",1));
-			}
-		}
+	bool endedOnFullstop = false;
+	auto endChar = latestText.find_last_not_of(" ");
+	if (endChar != std::string::npos) {
+		if (latestText[endChar] == '.')
+			endedOnFullstop = true;
 	}
+
+	//don't print redundant full stop.
+	if (text[0] == '.' && endedOnFullstop) 
+		text.erase(0,  text.find_first_not_of(" ",1));
 
 	if (text.size() == 0)
 		return text;
@@ -1300,14 +1305,16 @@ std::string CTigVM::devil(std::string text) {
 	//if text starts with a comma
 	//and the last text ended with a full stop
 	//snip the comma, capitalise
-	if (text[0] == ',') {
-		auto endChar = latestText.find_last_not_of(" ");
-		if (endChar != std::string::npos) {
-			if (latestText[endChar] == '.') {
-				text.erase(0, text.find_first_not_of(" ", 1));
-				text[0] = toupper(text[0]);
-			}
-		}
+	if (text[0] == ',' && endedOnFullstop) {
+		text.erase(0); // , text.find_first_not_of(" ", 1));
+				//text[0] = toupper(text[0]);
+	}
+
+	//if last text ended with a full stop, ensure we capitalise
+	if (endedOnFullstop) {
+		auto startChar = text.find_first_not_of(" ");
+		if (startChar != std::string::npos)
+			text[startChar] = toupper(text[startChar]);
 	}
 
 	for (auto& hotText : hotTexts) {
