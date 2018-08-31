@@ -164,6 +164,8 @@ public:
 
 	std::string devil(std::string text);
 
+	unsigned int caselessFind(std::string source, int offset, std::string subject);
+
 	int progBufSize;
 	char* progBuf; 
 	int pc; ///<Program counter. Points at the next command to execute.

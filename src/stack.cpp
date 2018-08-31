@@ -43,7 +43,6 @@ CTigVar CStack::pop() {
 }
 
 CTigVar & CStack::local(int var) {
-	int  x = localVarStart;
 	return stack[localVarStart + var]; 
 }
 
@@ -51,8 +50,8 @@ CTigVar & CStack::local(int var) {
 void CStack::reserveLocalVars(int varCount) {
 	CTigVar currentLocalVarStart(localVarStart);
 	stack.push_back(currentLocalVarStart);
+	localVarStart = stack.size();
 	if (varCount > 0) {
-		localVarStart = stack.size();
 		stack.resize(stack.size() + varCount);
 	}
 	CTigVar varCountRef(varCount);
@@ -61,6 +60,8 @@ void CStack::reserveLocalVars(int varCount) {
 
 /** Free space reserved for local variables. */
 void CStack::freeLocalVars(int varCount) {
-	stack.resize(stack.size() - varCount);
+	//stack.resize(stack.size() - varCount);
+	//TO DO: I *think* the above method is redundant. Keep an eye on this!!!
+	stack.resize(localVarStart);
 	localVarStart = pop().getIntValue();
 }

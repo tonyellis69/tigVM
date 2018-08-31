@@ -715,7 +715,8 @@ void CTigVM::hot() {
 	int objId = stack.pop().getIntValue();
 	int memberId = stack.pop().getIntValue();
 	std::string text = stack.pop().getStringValue();
-	//hotText(text, memberId , objId);
+;
+	std::transform(text.begin(), text.end(), text.begin(), ::tolower);
 	hotTexts.push_back({ text, memberId, objId,false });
 }
 
@@ -1317,18 +1318,25 @@ std::string CTigVM::devil(std::string text) {
 			text[startChar] = toupper(text[startChar]);
 	}
 
+	//std::string lower = text;
+	//std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
 	for (auto& hotText : hotTexts) {
 		if (!hotText.used) {
-			size_t found = text.find(hotText.text);
+			if (hotText.text == "down")
+				int b = 0;
+			//size_t found = text.find(hotText.text);
+			size_t found = caselessFind(text,0, hotText.text);
 			while (found != std::string::npos) { //found, but check it isn't part of a bigger word:
 				if ((found == 0 || !isalnum(text[found - 1])) && !isalnum(text[found + hotText.text.size()])) {
 					std::string hotStr = "\\h{" + std::to_string(hotText.msgId) + '@' + std::to_string(hotText.objId) + "}";
+
 					hotStr += hotText.text + "\\h";
 					text.replace(found, hotText.text.size(), hotStr);
 					hotText.used = true;
 					break; //don't look again
 				}
-				found = text.find(hotText.text, found + hotText.text.size());
+				//found = text.find(hotText.text, found + hotText.text.size());
+				found = caselessFind(text, found + hotText.text.size(), hotText.text);
 			}
 		}
 	}
@@ -1338,5 +1346,21 @@ std::string CTigVM::devil(std::string text) {
 		text += " ";
 
 	return text;
+}
+
+unsigned int CTigVM::caselessFind(std::string source, int offset, std::string subject) {
+	int sourceSize = (int)source.size();
+	int subjectSize = subject.size();
+	int searchPos = offset;
+	while (searchPos <= (sourceSize - subjectSize) ) {
+		int subjectPos = 0;
+		while (tolower(source[searchPos++]) == tolower(subject[subjectPos]) ) {
+			subjectPos++;
+			if (subjectPos == subjectSize) {
+				return searchPos - subjectSize;
+			}
+		}
+	}
+	return std::string::npos;
 }
 
