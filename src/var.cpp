@@ -110,6 +110,23 @@ bool CTigVar::operator>(CTigVar & var2) {
 		return getIntValue() > var2.getIntValue();
 }
 
+bool CTigVar::operator>=(CTigVar & var2) {
+	if (type == tigInt && var2.type == tigFloat) {
+		return getIntValue() >= var2.getFloatValue();
+	}
+	else if (type == tigFloat && var2.type == tigInt) {
+		return getFloatValue() >= var2.getIntValue();
+	}
+	else if (type == tigFloat && var2.type == tigFloat) {
+		return getFloatValue() >= var2.getFloatValue();
+	}
+	else if (type == tigString && var2.type == tigString) {
+		return getStringValue() >= var2.getStringValue();
+	}
+	else
+		return getIntValue() >= var2.getIntValue();
+}
+
 bool CTigVar::operator<(CTigVar & var2) {
 	if (type == tigInt && var2.type == tigFloat) {
 		return getIntValue() < var2.getFloatValue();
@@ -227,7 +244,7 @@ int CTigVar::getArraySize() {
 bool CTigVar::cmpArray(CTigVar & var2) {
 	if (type == tigArray && var2.type == tigArray &&
 		pArray->elements.size() == var2.pArray->elements.size()) {
-		for (int x = 0; x < pArray->elements.size(); x++) {
+		for (unsigned int x = 0; x < pArray->elements.size(); x++) {
 			if (pArray->elements[x] != var2.pArray->elements[x])
 				return false;
 		}

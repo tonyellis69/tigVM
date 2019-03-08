@@ -10,6 +10,7 @@
 
 #include "stack.h"
 #include "daemon.h"
+#include "..\3DEngine\src\utils\idContainer.h"
 
 struct TEventRec {
 	int id;
@@ -27,6 +28,13 @@ struct THotTExt {
 	int msgId;
 	int objId;
 	bool used;
+};
+
+/**	Details the function call specifics of a hot text. */
+struct THotTextFnCall {
+	int msgId; ///<The function id.
+	int objId; ///<The object it is being called on.
+	std::vector<CTigVar> params;
 };
 
 
@@ -90,6 +98,7 @@ public:
 	void pushObj();
 	void pushSelf();
 	void call();
+
 	void callDeref();
 	void superCall();
 	void returnOp();
@@ -98,13 +107,14 @@ public:
 	void purge();
 	void initArray();
 	void pushElem();
-	void assignElem();
+	//void assignElem();
 	void arrayIt();
 	void pop();
 	void compEq();
 	void compNE();
 	void compLT();
 	void compGT();
+	void compGE();
 	void jump();
 	void jumpFalse();
 	void child();
@@ -130,14 +140,24 @@ public:
 	void arrayPush();
 	void msg();
 	void has();
+	void match();
+	void is();
+	void isNot();
+	void set();
+	void unset();
+	void newOp();
+	void deleteOp();
 
-	CTigVar * resolveVariableAddress();
+	CTigVar * resolveVariableAddress(int varId);
+	CTigVar * resolveVariableAddress(int varId, int& owningObject);
+	//CTigVar * resolveMemberFuncAddress(int memberId, int& obj);
 	TVMstatus getStatus();
 	void getOptionStrs(std::vector<std::string>& optionStrs);
 	void sendMessage(const TVMmsg& msg);
 	virtual void writeText(std::string& text) {};
 	virtual void hotText(std::string& text, int memberId, int objectId) {};
 	virtual void purge(int memberId, int objId) {};
+	virtual void purge(unsigned int hotFnCallId) {};
 	virtual void clearWin() {};
 	virtual void openWindow(int objId) {};
 	virtual void messageApp(int p1, int p2) {};
@@ -164,7 +184,13 @@ public:
 
 	std::string devil(std::string text);
 
-	unsigned int caselessFind(std::string source, int offset, std::string subject);
+	unsigned int regExFind(std::string source, unsigned int offset, std::string subject);
+
+	void removeHotTextFnCall(unsigned int id);
+	THotTextFnCall getHotTextFnCall(unsigned int id);
+
+	void reset();
+	bool reloadProgFile();
 
 	int progBufSize;
 	char* progBuf; 
@@ -188,10 +214,16 @@ public:
 	int childId; ///<Member id for the 'child' member
 	int siblingId; ///<Member id for the 'sibling' member
 	int parentId; ///<Member id for the 'parent' member
+	int flagsId; ///<Member id for the '#flags' member
 
 	int window; ///<The output we're currently writing to.
 
-	std::vector<THotTExt> hotTexts; ///<The list of known hot texts, if any, for the devil to look out for.
+	std::vector<THotTExt> hotTextKeywords; ///<A list of known hot texts, if any, for the devil to look out for.
+	CIdMap<THotTextFnCall> hotTextFnCalls; ///<The function calls, with parameters, of any current hot texts.
 
 	std::string latestText; ///<The most recent text sent to output.
+
+private:
+	std::string currentProgFile; ///<Path of the current program file.
+	int nextFreeObjNo;
 };

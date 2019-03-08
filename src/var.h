@@ -17,6 +17,7 @@ class CTigVar {
 public:
 	CTigVar() { intValue = 0; floatValue = 0.0; funcAddress = 0; type = tigInt; }
 	CTigVar(int intVal) { setIntValue(intVal); }
+	CTigVar(float floatVal) { setFloatValue(floatVal); }
 	CTigVar(TigVarType typeVal) { type = typeVal; };
 	CTigVar(const CTigVar& var2);
 	void operator = (const int& var2);
@@ -27,6 +28,7 @@ public:
 	bool operator == ( CTigVar& var2);
 	bool operator != (CTigVar& var2);
 	bool operator > (CTigVar& var2);
+	bool operator >= (CTigVar& var2);
 	bool operator < (CTigVar& var2);
 	CTigVar operator - ();
 	void resetSharedPointers();
