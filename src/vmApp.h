@@ -20,11 +20,11 @@ public:
 	void setApp(CBaseApp* app);
 	void writeText(std::string& text);
 	void hotText(std::string& text, int memberId, int objectId);
-	//void purge(int memberId, int objId);
 	void purge(unsigned int hotFnCallId);
 	void clearWin();
 	void openWindow(int objId);
 	void messageApp(int p1, int p2);
+	void logText(std::string& text);
 
 	CBaseApp* pApp; ///<Pointer to the user application.
 };

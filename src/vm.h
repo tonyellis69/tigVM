@@ -7,6 +7,7 @@
 #include <iostream>
 #include <fstream>
 #include <list>
+#include <random>
 
 #include "stack.h"
 #include "daemon.h"
@@ -28,6 +29,7 @@ struct THotTExt {
 	int msgId;
 	int objId;
 	bool used;
+	std::vector<CTigVar> params;
 };
 
 /**	Details the function call specifics of a hot text. */
@@ -107,12 +109,13 @@ public:
 	void purge();
 	void initArray();
 	void pushElem();
-	//void assignElem();
+	void assignElem();
 	void arrayIt();
 	void pop();
 	void compEq();
 	void compNE();
 	void compLT();
+	void compLE();
 	void compGT();
 	void compGE();
 	void jump();
@@ -147,6 +150,10 @@ public:
 	void unset();
 	void newOp();
 	void deleteOp();
+	void finalLoop();
+	void roll();
+	void sortDesc();
+	void log();
 
 	CTigVar * resolveVariableAddress(int varId);
 	CTigVar * resolveVariableAddress(int varId, int& owningObject);
@@ -161,6 +168,7 @@ public:
 	virtual void clearWin() {};
 	virtual void openWindow(int objId) {};
 	virtual void messageApp(int p1, int p2) {};
+	virtual void logText(std::string& text) {};
 	
 	CTigVar getGlobalVar(std::string varName);
 	CTigVar getMember(int objNo, int memberId);
@@ -171,6 +179,7 @@ public:
 	CTigVar callMember(int objId, std::string msgName, std::initializer_list<CTigVar> params);
 	CTigVar callMember(int objId, std::string msgName);
 	CTigVar callMember(int objId, int msgId);
+	CTigVar callMember(int objId, int msgId, std::vector<CTigVar>& params);
 	std::string getMemberName(int memberId);
 
 	bool inheritsFrom(int obj, int classObj);
@@ -216,6 +225,7 @@ public:
 	int parentId; ///<Member id for the 'parent' member
 	int flagsId; ///<Member id for the '#flags' member
 
+
 	int window; ///<The output we're currently writing to.
 
 	std::vector<THotTExt> hotTextKeywords; ///<A list of known hot texts, if any, for the devil to look out for.
@@ -226,4 +236,7 @@ public:
 private:
 	std::string currentProgFile; ///<Path of the current program file.
 	int nextFreeObjNo;
+
+	std::mt19937 randEngine; ///<The vm's own randon number engine.
+
 };

@@ -25,17 +25,6 @@ void CVMapp::hotText(std::string & text, int memberId, int objectId) {
 	pApp->vmMessage(msg);
 }
 
-/*
-void CVMapp::purge(int memberId, int objId) {
-	TvmAppMsg msg;
-	msg.type = appPurge;
-	msg.integer = memberId;
-	msg.integer2 = objId;
-	pApp->vmMessage(msg);
-	//whatever hot text was removed, remove also from the list of hot text function calls.
-}
-*/
-
 void CVMapp::purge(unsigned int hotFnCallId) {
 	TvmAppMsg msg;
 	msg.type = appPurge;
@@ -66,6 +55,10 @@ void CVMapp::messageApp(int p1, int p2) {
 	msg.integer = p1;
 	msg.integer2 = p2;
 	pApp->vmMessage(msg);
+}
+
+void CVMapp::logText(std::string & text) {
+	liveLog << text;
 }
 
 

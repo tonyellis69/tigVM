@@ -1,6 +1,8 @@
 #include "vm.h"
 #include "..\..\TC\src\sharedTypes.h"
 
+#include "..\3DEngine\src\utils\log.h"
+
 #include <algorithm>    // std::find_if
 #include <regex>
 
@@ -41,6 +43,10 @@ bool CTigVM::loadProgFile(std::string filename) {
 	//	pc = eventTable[0].address;
 	status = vmExecuting;
 	currentObject = 0;
+
+	randEngine.seed(740608);
+	//TO DO: Tig code should be able to overrule this with its own seed.
+
 	return true;
 }
 
@@ -200,12 +206,13 @@ void CTigVM::execute() {
 		case opPurge: purge(); break;
 		case opInitArray: initArray(); break;
 		case opPushElem: pushElem(); break;
-		//case opAssignElem: assignElem(); break;
+		case opAssignElem: assignElem(); break;
 		case opArrayIt: arrayIt(); break;
 		case opPop: pop(); break;
 		case opEq: compEq(); break;
 		case opNE: compNE(); break;
 		case opLT: compLT(); break;
+		case opLE: compLE(); break;
 		case opGT: compGT(); break;
 		case opGE: compGE(); break;
 		case opJump: jump(); break;
@@ -240,6 +247,10 @@ void CTigVM::execute() {
 		case opUnset: unset(); break;
 		case opNew: newOp(); break;
 		case opDelete: deleteOp(); break;
+		case opFinalLoop: finalLoop(); break;
+		case opRoll: roll(); break;
+		case opSortDesc: sortDesc(); break;
+		case opLog: log(); break;
 		}
 	}
 	if (pc >= progBufSize)
@@ -353,12 +364,15 @@ void CTigVM::assign() {
 	if (!pVar)
 		return;
 	
-	if (pVar->type == tigArray) {
+	/*if (pVar->type == tigArray) {
 		int index = stack.pop().getIntValue();
 		pVar->pArray->elements[index] = stack.pop();
 	}
 	else
+		*pVar = stack.pop();*/
+
 		*pVar = stack.pop();
+
 }
 
 
@@ -392,7 +406,7 @@ CTigVar* CTigVM::resolveVariableAddress(int varId, int& owningObject) {
 
 	//still here? Then it's the member of an object
 	if (objects.find(objectId) == objects.end()) { //does the object exist?
-		cerr << "\nError! Attempt to access non-existent object " << objectId << " via member " << varId;
+		liveLog << "\nError! Attempt to access non-existent object " << objectId << " via member " << getMemberName(varId);
 		return NULL;
 	}
 
@@ -401,7 +415,7 @@ CTigVar* CTigVM::resolveVariableAddress(int varId, int& owningObject) {
 		return &it2->second;
 	}
 
-	cerr << "\nAttention: attempt to access non-existent member " << varId << " of object " << objectId;
+	liveLog << "\nNon-existent member " << getMemberName(varId) << " called on object " << objectId;
 	return NULL;
 }
 
@@ -661,12 +675,26 @@ void CTigVM::returnTrue() {
 
 /** Pass on text identified as hot for the user to do something with. */
 void CTigVM::hot() {
-	int objId = stack.pop().getIntValue();
-	int memberId = stack.pop().getIntValue();
+	int paramCount = readByte();
+	std::vector<CTigVar> params(paramCount);
+	for (int p = 0; p < paramCount; p++) {
+		params[p] = stack.pop();
+	}
+
+	THotTExt hotKeyword;
+	hotKeyword.objId = stack.pop().getIntValue();
+	hotKeyword.msgId = stack.pop().getIntValue();
+
 	std::string text = stack.pop().getStringValue();
-;
 	std::transform(text.begin(), text.end(), text.begin(), ::tolower);
-	hotTextKeywords.push_back({ text, memberId, objId,false });
+	hotKeyword.text = text;
+
+	for (auto param : params) {
+		hotKeyword.params.push_back(param);
+	}
+	hotKeyword.used = false;
+
+	hotTextKeywords.push_back(hotKeyword);
 }
 
 /** Ask the user to remove any hot text with the given values. */
@@ -746,6 +774,49 @@ void CTigVM::pushElem() {
 	stack.pushUndefined();
 }
 
+
+/** Assign the value on the stack to the array address also on the stack. */
+void CTigVM::assignElem() {
+
+	int varId = stack.pop().getIntValue();
+	CTigVar* pVar = NULL; int objectId = NULL;
+
+	if (varId < memberIdStart) {
+		pVar = &stack.local(varId);
+	}
+	else { //not a local variable
+		objectId = stack.pop().getIntValue();
+		if (objectId == zeroObject) {
+			objectId = currentObject;
+			auto it = objects[objectId].members.find(varId);
+			if (it != objects[objectId].members.end()) { //local member
+				pVar = &it->second;
+			}
+			else {
+				pVar = &objects[zeroObject].members[varId]; //global variable
+			}
+		}
+		else { //member of object objectId?
+			auto it2 = objects[objectId].members.find(varId);
+			if (it2 != objects[objectId].members.end()) {
+				pVar = &it2->second;
+			}
+		}
+	}
+
+	int index = stack.pop().getIntValue();
+
+	CTigVar value = stack.pop();
+
+	if (!pVar) {
+		cerr << "\nError! Attempt to assign value " << value.getStringValue() <<
+			" to non-existent member " << varId << " of object " << objectId;
+		return;
+	}
+
+	pVar->pArray->elements[index] = value;
+}
+
 /** Array iterator. */
 void CTigVM::arrayIt() {
 	int resumeAddr = readWord();
@@ -753,8 +824,8 @@ void CTigVM::arrayIt() {
 
 	//Is the container an array?
 	if (stack.top(0).type == tigArray) {
-		if (index < stack.top(0).getArraySize()) {
-			stack.push(stack.top(0).pArray->elements[index]);
+		if (index < stack.top(0).getArraySize()) { //if we haven't reached the end...
+			stack.push(stack.top(0).pArray->elements[index]); //...put array element on stack for collection
 			stack.top(-2) = ++index;
 		}
 		else {
@@ -821,6 +892,12 @@ void CTigVM::compLT() {
 	CTigVar op2 = stack.pop();
 	CTigVar op1 = stack.pop();
 	stack.push(op1 < op2);
+}
+
+void CTigVM::compLE() {
+	CTigVar op2 = stack.pop();
+	CTigVar op1 = stack.pop();
+	stack.push(op1 <= op2);
 }
 
 void CTigVM::compGT() {
@@ -1194,6 +1271,54 @@ void CTigVM::deleteOp() {
 }
 
 
+void CTigVM::finalLoop() {
+	int index = stack.top(-1).getIntValue();
+
+	if (stack.top(0).type == tigArray) {
+		if (index == stack.top(0).getArraySize()) {
+			stack.push(1);
+			return;
+		}
+	}
+
+	stack.push(0);
+}
+
+/** Generate a random dice roll of the given size, leave it on the stack. */
+void CTigVM::roll() {
+	int sides = readWord();
+	std::uniform_int_distribution<> die{ 1,sides };
+
+	stack.push(die(randEngine));
+}
+
+
+/** Sort the array on the stack in descending order using the supplied member id. */
+void CTigVM::sortDesc() {
+	int memberId = stack.pop().getIntValue();
+	//TO DO: use a value of zero to indicate sort by element value, not member value
+
+	int varId = stack.pop().getIntValue();
+	CTigVar* array = resolveVariableAddress(varId);
+	if (array->type != tigArray) {
+		cerr << "\nError! Attempt to sort non-array.";
+		return;
+	}
+
+	auto compare = [&](CTigVar elem1, CTigVar elem2) -> bool {
+		return getMember(elem1.getObjId(), memberId) > getMember(elem2.getObjId(), memberId);
+	};
+
+	std::sort(array->pArray->elements.begin(), array->pArray->elements.end(), compare);
+}
+
+/** Send whatever is on the stack to the user's logging system to handle. */
+void CTigVM::log() {
+	std::string text = stack.pop().getStringValue();
+	logText(text);
+}
+
+
 
 TVMstatus CTigVM::getStatus() {
 	return status;
@@ -1276,8 +1401,28 @@ int CTigVM::getMemberId(std::string name) {
 
 
 CTigVar CTigVM::callMember(int objId, int memberId, initializer_list<CTigVar> params) {
-	
-	CTigVar* objMember = &objects[objId].members[memberId];
+	std::vector<CTigVar> paramList;
+	for (auto param : params)
+		paramList.push_back(param);
+
+	return callMember(objId, memberId, paramList);
+}
+
+CTigVar CTigVM::callMember(int objId, std::string msgName, initializer_list<CTigVar> params) {
+	int memberId = getMemberId(msgName);
+	return callMember(objId, memberId, params);
+}
+
+CTigVar CTigVM::callMember(int objId, std::string msgName) {
+	return callMember(objId, msgName, {});
+}
+
+CTigVar CTigVM::callMember(int objId, int msgId) {
+	return callMember(objId, msgId, {});
+}
+
+CTigVar CTigVM::callMember(int objId, int msgId, std::vector<CTigVar>& params) {
+	CTigVar* objMember = &objects[objId].members[msgId];
 
 	if (objMember->type == tigString)
 		return *objMember;
@@ -1292,9 +1437,9 @@ CTigVar CTigVM::callMember(int objId, int memberId, initializer_list<CTigVar> pa
 		stack.reserveLocalVars(varCount);
 
 		int x = 0;
-		for (auto param : params) 
+		for (auto param : params)
 			stack.local(x++) = param;
-	
+
 		status = vmExecuting;
 		execute();
 		return stack.pop();
@@ -1302,19 +1447,6 @@ CTigVar CTigVM::callMember(int objId, int memberId, initializer_list<CTigVar> pa
 
 	//TO DO: handle other types
 	return *objMember;
-}
-
-CTigVar CTigVM::callMember(int objId, std::string msgName, initializer_list<CTigVar> params) {
-	int memberId = getMemberId(msgName);
-	return callMember(objId, memberId, params);
-}
-
-CTigVar CTigVM::callMember(int objId, std::string msgName) {
-	return callMember(objId, msgName, {});
-}
-
-CTigVar CTigVM::callMember(int objId, int msgId) {
-	return callMember(objId, msgId, {});
 }
 
 
@@ -1393,8 +1525,7 @@ std::string CTigVM::devil(std::string text) {
 	//and the last text ended with a full stop
 	//snip the comma, capitalise
 	if (text[0] == ',' && endedOnFullstop) {
-		text.erase(0); // , text.find_first_not_of(" ", 1));
-				//text[0] = toupper(text[0]);
+		text.erase(0); 
 	}
 
 	//if last text ended with a full stop, ensure we capitalise
@@ -1414,6 +1545,7 @@ std::string CTigVM::devil(std::string text) {
 				THotTextFnCall fnCall;
 				fnCall.msgId = hotKeyword.msgId;
 				fnCall.objId = hotKeyword.objId;
+				fnCall.params = hotKeyword.params;
 				unsigned int id = hotTextFnCalls.addItem(fnCall);
 
 				hotStr = "\\h{" + std::to_string(id) + "}" + hotKeyword.text + "\\h";
