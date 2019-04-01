@@ -13,6 +13,8 @@ CTigVM::CTigVM() {
 	time(&currentTime);
 	status = vmNoProgram;
 	window = 0;
+	paused = false;
+	capitaliseNext = false;
 }
 
 CTigVM::~CTigVM() {
@@ -173,7 +175,7 @@ void CTigVM::readMemberNameTable(std::ifstream & progFile) {
 }
 
 
-/** Execute the currently loaded program starting at the current program counter position. */
+/** Execute the currently loaded program starting at the current program counter positionHint. */
 void CTigVM::execute() {
 	escape = false;
 	while (pc < progBufSize && status == vmExecuting) {
@@ -231,6 +233,7 @@ void CTigVM::execute() {
 		case opClr: clr(); break;
 		case opStyle: style(); break;
 		case opCap: cap(); break;
+		case opCapNext: capNext(); break;
 		case opInherits: inherits(); break;
 		case opHotClr: hotClr(); break;
 		case opHotCheck: hotCheck(); break;
@@ -248,9 +251,11 @@ void CTigVM::execute() {
 		case opNew: newOp(); break;
 		case opDelete: deleteOp(); break;
 		case opFinalLoop: finalLoop(); break;
+		case opFirstLoop: firstLoop(); break;
 		case opRoll: roll(); break;
 		case opSortDesc: sortDesc(); break;
 		case opLog: log(); break;
+		case opPause: pause(); break;
 		}
 	}
 	if (pc >= progBufSize)
@@ -1060,6 +1065,7 @@ void CTigVM::openWin() {
 /** Set the window we're outputting to. */
 void CTigVM::win() {
 	window = stack.pop().getIntValue();
+	latestText.clear(); // Avoids effects carrying over from another window.
 }
 
 void CTigVM::clr() {
@@ -1076,6 +1082,10 @@ void CTigVM::cap() {
 	std::string text = stack.pop().getStringValue();
 	text[0] = toupper(text[0]);
 	stack.push(text);
+}
+
+void CTigVM::capNext() {
+	capitaliseNext = true;
 }
 
 void CTigVM::inherits() {
@@ -1168,7 +1178,7 @@ void CTigVM::is() {
 	
 	//Panic if we don't have an object
 	if (obj.type != tigObj) {
-		cerr << "\nError! Attempt to read flag " << flag << " on a non-object.";
+		liveLog << alertMsg << "\nError! Attempt to read flag " << flag << " on a non-object.";
 		stack.push(tigUndefined);
 		return;
 	}
@@ -1284,6 +1294,20 @@ void CTigVM::finalLoop() {
 	stack.push(0);
 }
 
+/** Return 1 if this is the first iteration of a loop, zero otherwise.*/
+void CTigVM::firstLoop() {
+	int index = stack.top(-1).getIntValue();
+
+	if (stack.top(0).type == tigArray) {
+		if (index == 1) {
+			stack.push(1);
+			return;
+		}
+	}
+
+	stack.push(0);
+}
+
 /** Generate a random dice roll of the given size, leave it on the stack. */
 void CTigVM::roll() {
 	int sides = readWord();
@@ -1318,6 +1342,16 @@ void CTigVM::log() {
 	logText(text);
 }
 
+/** Notify the user of either a pause or an umpause for them to deal with. */
+void CTigVM::pause() {
+	if (paused) {
+		paused = false;
+	}
+	else {
+		paused = true;
+	}
+	handlePause(paused);
+}
 
 
 TVMstatus CTigVM::getStatus() {
@@ -1430,7 +1464,7 @@ CTigVar CTigVM::callMember(int objId, int msgId, std::vector<CTigVar>& params) {
 	if (objMember->type == tigFunc) {
 		int addr = objMember->getFuncAddress();
 		stack.push(NULL); //dummy calling object
-		stack.push(NULL); //dummy start position
+		stack.push(NULL); //dummy start positionHint
 		currentObject = objId;
 		pc = addr;
 		int varCount = readByte();
@@ -1508,10 +1542,15 @@ int CTigVM::getObjectId(CObjInstance * obj) {
 /** Printer's devil: replaces any instances of hot text with hot text markup, and does a little tidying. */
 std::string CTigVM::devil(std::string text) {
 	bool endedOnFullstop = false;
-	auto endChar = latestText.find_last_not_of(" ");
+	bool lacksFinalSpace = false;
+	auto endChar = latestText.find_last_not_of(" \\h");
 	if (endChar != std::string::npos) {
-		if (latestText[endChar] == '.')
+		if (latestText[endChar] == '.' || latestText[endChar] == '!') {
 			endedOnFullstop = true;
+			auto finalSpace = latestText.find_last_of(" ");
+			if (finalSpace != std::string::npos && finalSpace < endChar)
+				lacksFinalSpace = true;
+		}
 	}
 
 	//don't print redundant full stop.
@@ -1529,11 +1568,18 @@ std::string CTigVM::devil(std::string text) {
 	}
 
 	//if last text ended with a full stop, ensure we capitalise
-	if (endedOnFullstop) {
+	if (capitaliseNext || endedOnFullstop) {
 		auto startChar = text.find_first_not_of(" ");
-		if (startChar != std::string::npos)
+		if (startChar != std::string::npos) {
 			text[startChar] = toupper(text[startChar]);
+			capitaliseNext = false;
+		}
 	}
+
+	//if last text lacked a final space and there's none here, add one.
+	if (lacksFinalSpace && text[0] != ' ')
+			text.insert(0, " ");
+
 
 	//search for current hot text keywords that we haven't already hot texted
 	for (auto& hotKeyword : hotTextKeywords) {
@@ -1560,7 +1606,7 @@ std::string CTigVM::devil(std::string text) {
 	}
 
 	//tidying
-	if (text.back() == '.')
+	if (text.size() && text.back() == '.')
 		text += " ";
 
 	return text;

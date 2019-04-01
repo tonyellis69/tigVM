@@ -15,7 +15,7 @@ void CVMapp::writeText(std::string & text) {
 	msg.integer = window;
 	pApp->vmMessage(msg);
 }
-
+/*
 void CVMapp::hotText(std::string & text, int memberId, int objectId) {
 	TvmAppMsg msg;
 	msg.type = appHotText;
@@ -23,7 +23,7 @@ void CVMapp::hotText(std::string & text, int memberId, int objectId) {
 	msg.integer = memberId;
 	msg.integer2 = NULL;
 	pApp->vmMessage(msg);
-}
+}*/
 
 void CVMapp::purge(unsigned int hotFnCallId) {
 	TvmAppMsg msg;
@@ -61,6 +61,23 @@ void CVMapp::logText(std::string & text) {
 	liveLog << text;
 }
 
+void CVMapp::temporaryText(int onOff, int winId) {
+	TvmAppMsg msg;
+	msg.type = appTempTxt;
+	msg.integer = onOff;
+	msg.integer2 = winId;
+	pApp->vmMessage(msg);
+}
+
+/** Pass on a notification from the vm to pause or unpause. */
+void CVMapp::handlePause(bool pauseOn) {
+	TvmAppMsg msg;
+	if (pauseOn)
+		msg.type = appPause;
+	else
+		msg.type = appUnpause;
+	pApp->vmMessage(msg);
+}
 
 
 

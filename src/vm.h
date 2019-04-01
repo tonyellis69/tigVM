@@ -59,7 +59,7 @@ struct TVMmsg {
 };
 
 enum TVMstatus { vmExecuting, vmAwaitChoice, vmAwaitString, vmEnding, vmError, vmNoProgram,
-	vmEof};
+	vmEof, vmPaused};
 
 
 /** The Tig virtual machine. Reads compiled Tig code and executes it. */
@@ -134,6 +134,7 @@ public:
 	void clr();
 	void style();
 	void cap();
+	void capNext();
 	void inherits();
 	void hotClr();
 	void hotCheck();
@@ -151,9 +152,12 @@ public:
 	void newOp();
 	void deleteOp();
 	void finalLoop();
+	void firstLoop();
 	void roll();
 	void sortDesc();
 	void log();
+	void pause();
+
 
 	CTigVar * resolveVariableAddress(int varId);
 	CTigVar * resolveVariableAddress(int varId, int& owningObject);
@@ -162,13 +166,15 @@ public:
 	void getOptionStrs(std::vector<std::string>& optionStrs);
 	void sendMessage(const TVMmsg& msg);
 	virtual void writeText(std::string& text) {};
-	virtual void hotText(std::string& text, int memberId, int objectId) {};
+	//virtual void hotText(std::string& text, int memberId, int objectId) {};
 	virtual void purge(int memberId, int objId) {};
 	virtual void purge(unsigned int hotFnCallId) {};
 	virtual void clearWin() {};
 	virtual void openWindow(int objId) {};
 	virtual void messageApp(int p1, int p2) {};
 	virtual void logText(std::string& text) {};
+	virtual void temporaryText(int onOff, int winId) {};
+	virtual void handlePause(bool pauseOn) {};
 	
 	CTigVar getGlobalVar(std::string varName);
 	CTigVar getMember(int objNo, int memberId);
@@ -238,5 +244,6 @@ private:
 	int nextFreeObjNo;
 
 	std::mt19937 randEngine; ///<The vm's own randon number engine.
-
+	bool paused;
+	bool capitaliseNext; ///<If true, capitaliseNext the next letter printed.
 };

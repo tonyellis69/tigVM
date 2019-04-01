@@ -46,6 +46,16 @@ public:
 	int getFuncAddress();
 	int getObjId();
 	int getArraySize();
+	template <class T>
+	T getValue() {
+		if (type == tigFloat)
+			return getFloatValue();
+		return getIntValue();
+	}
+	template <class TX, class TY>
+	bool comp(TX, TY) {
+		return TX > TY;
+	}
 
 
 	TigVarType type;
@@ -61,4 +71,5 @@ public:
 
 private:
 	bool cmpArray(CTigVar& var2);
+
 };

@@ -94,6 +94,7 @@ bool CTigVar::operator!=(CTigVar & var2) {
 	}
 }
 
+
 bool CTigVar::operator>(CTigVar & var2) {
 	if (type == tigInt && var2.type == tigFloat) {
 		return getIntValue() > var2.getFloatValue();
@@ -108,6 +109,7 @@ bool CTigVar::operator>(CTigVar & var2) {
 		return getStringValue() > var2.getStringValue();
 	} else 
 		return getIntValue() > var2.getIntValue();
+		
 }
 
 bool CTigVar::operator>=(CTigVar & var2) {
@@ -221,6 +223,8 @@ std::string CTigVar::getStringValue() {
 		return std::to_string(intValue);
 	if (type == tigFloat)
 		return std::to_string(floatValue);
+	if (type == tigArray)
+		return std::to_string(pArray->elements.size());
 	if (type == tigObj)
 		return "object " + std::to_string(intValue);
 	setStringValue(std::string( "##Undefined!##"));
