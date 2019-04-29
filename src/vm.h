@@ -157,6 +157,7 @@ public:
 	void sortDesc();
 	void log();
 	void pause();
+	void rand();
 
 
 	CTigVar * resolveVariableAddress(int varId);
@@ -244,6 +245,7 @@ private:
 	int nextFreeObjNo;
 
 	std::mt19937 randEngine; ///<The vm's own randon number engine.
+	//std::shuffle_order_engine<std::mt19937, 256> randEngine;
 	bool paused;
 	bool capitaliseNext; ///<If true, capitaliseNext the next letter printed.
 };

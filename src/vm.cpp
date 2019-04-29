@@ -47,6 +47,7 @@ bool CTigVM::loadProgFile(std::string filename) {
 	currentObject = 0;
 
 	randEngine.seed(740608);
+	randEngine.discard(700000);
 	//TO DO: Tig code should be able to overrule this with its own seed.
 
 	return true;
@@ -256,6 +257,7 @@ void CTigVM::execute() {
 		case opSortDesc: sortDesc(); break;
 		case opLog: log(); break;
 		case opPause: pause(); break;
+		case opRand: rand(); break;
 		}
 	}
 	if (pc >= progBufSize)
@@ -827,6 +829,20 @@ void CTigVM::arrayIt() {
 	int resumeAddr = readWord();
 	int index = stack.top(-1).getIntValue();
 
+	//Is the 'container' an integer?
+	if (stack.top(0).type == tigInt) {
+		if (index <= stack.top(0).getIntValue()) { //if we haven't reached the end...
+			stack.push(index); //...put index on stack for collection
+			stack.top(-2) = ++index;
+		}
+		else {
+			stack.pop();
+			stack.pop();
+			pc = resumeAddr;
+		}
+		return;
+	}
+
 	//Is the container an array?
 	if (stack.top(0).type == tigArray) {
 		if (index < stack.top(0).getArraySize()) { //if we haven't reached the end...
@@ -945,8 +961,23 @@ void CTigVM::sibling() {
 }
 
 void CTigVM::in() {
-	int container = stack.pop().getObjId();
-	int obj = stack.pop().getObjId();
+	CTigVar containerObj = stack.pop();
+	CTigVar searchObj = stack.pop();
+
+	if (containerObj.type == tigArray) {
+		for (auto element : containerObj.pArray->elements) {
+			if (searchObj == element) {
+				stack.push(1);
+				return;
+			}
+		}
+		stack.push(0);
+		return;
+	}
+
+	//otherwise, lazily assume it's an object
+	int container = containerObj.getObjId();
+	int obj = searchObj.getObjId();
 
 	int containerChild = getMemberInt(container, childId);
 	while (containerChild != 0) {
@@ -1259,7 +1290,8 @@ void CTigVM::unset() {
 
 /**	Create a new object of the speciefied class, and put a reference to it on the stack. */
 void CTigVM::newOp() {
-	int classId = readWord();
+	//int classId = readWord();
+	int classId = stack.pop().getIntValue();
 
 	objects[nextFreeObjNo] = objects[classId];
 	objects[nextFreeObjNo].id++;
@@ -1351,6 +1383,29 @@ void CTigVM::pause() {
 		paused = true;
 	}
 	handlePause(paused);
+}
+
+/** Return a random element from the array on the stack. */
+void CTigVM::rand() {
+	int varId = stack.pop().getIntValue();
+	CTigVar* array = resolveVariableAddress(varId);
+	if (array->type != tigArray) {
+		liveLog << "\nError! Attempt to randomly access a variable as an array.";
+		stack.pushUndefined();
+		return;
+	}
+
+	unsigned int arraySize = array->pArray->elements.size();
+	if (arraySize == 0) {
+		liveLog << "\nWarning: randomly accessing an empty array.";
+		stack.pushUndefined();
+		return;
+	}
+	
+	std::uniform_int_distribution<> randomRange{ 0,(int)arraySize-1 };
+	unsigned int randomIndex = randomRange(randEngine);
+	CTigVar randomElement = array->pArray->elements[randomIndex];
+	stack.push(randomElement);
 }
 
 
@@ -1616,7 +1671,7 @@ std::string CTigVM::devil(std::string text) {
 
 /** Search for the keyword where it is not part of a bigger word, or within an already existing hot text markup. */
 unsigned int CTigVM::regExFind(std::string source, unsigned int offset, std::string subject) {
-	std::regex re("(\\s|^)"  + subject , regex_constants::icase);
+	std::regex re("(\\s|^)"  + subject + "([^[:alnum:]]|$)" , regex_constants::icase);
 	std::smatch match;
 	std::string substring = source.substr(offset);
 	if (regex_search(substring, match, re) && match.size()) {

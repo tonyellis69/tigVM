@@ -59,6 +59,7 @@ void CVMapp::messageApp(int p1, int p2) {
 
 void CVMapp::logText(std::string & text) {
 	liveLog << text;
+	sysLog << text;
 }
 
 void CVMapp::temporaryText(int onOff, int winId) {
