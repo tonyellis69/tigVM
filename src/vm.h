@@ -32,11 +32,33 @@ struct THotTExt {
 	std::vector<CTigVar> params;
 };
 
+class TFnCall {
+public:
+	bool operator == (TFnCall& var2) {
+		bool paramMatch = true;
+		for (unsigned int x = 0; x < params.size(); x++) {
+			if (params[x] != var2.params[x]) {
+				paramMatch = false;
+				break;
+			}
+		}
+		return objId == var2.objId && msgId == var2.msgId &&
+			paramMatch;
+	}
+	int objId; ///<The object the call is being called on.
+	int msgId; ///<The function id.
+	std::vector<CTigVar> params;
+};
+
 /**	Details the function call specifics of a hot text. */
 struct THotTextFnCall {
-	int msgId; ///<The function id.
-	int objId; ///<The object it is being called on.
-	std::vector<CTigVar> params;
+
+	std::string hotText; ///<The actual hot text text.
+	std::vector<TFnCall> options; ///<The 1 or more calls attached to this hot text.
+
+	//int msgId; ///<The function id.
+	//int objId; ///<The object it is being called on.
+	//std::vector<CTigVar> params;
 };
 
 
@@ -127,6 +149,7 @@ public:
 	void getVar();
 	void children();
 	void makeHot();
+	void makeHotAlt();
 	void brk();
 	void move();
 	void openWin();
@@ -142,6 +165,7 @@ public:
 	void and();
 	void or();
 	void arrayPush();
+	void arrayRemove();
 	void msg();
 	void has();
 	void match();
@@ -203,7 +227,9 @@ public:
 	unsigned int regExFind(std::string source, unsigned int offset, std::string subject);
 
 	void removeHotTextFnCall(unsigned int id);
-	THotTextFnCall getHotTextFnCall(unsigned int id);
+	TFnCall getHotTextFnCall(unsigned int id, int variant);
+
+	THotTextFnCall getHotTextFnCallRec(unsigned int id);
 
 	void reset();
 	bool reloadProgFile();

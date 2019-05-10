@@ -227,6 +227,7 @@ void CTigVM::execute() {
 		case opGetVar: getVar(); break;
 		case opChildren: children(); break;
 		case opMakeHot: makeHot(); break;
+		case opMakeHotAlt: makeHotAlt(); break;
 		case opBrk: brk(); break;
 		case opMove: move(); break;
 		case opOpenWin: openWin(); break;
@@ -242,6 +243,7 @@ void CTigVM::execute() {
 		case opAnd: and(); break;
 		case opOr: or(); break;
 		case opArrayPush: arrayPush(); break;
+		case opArrayRemove: arrayRemove(); break;
 		case opMsg: msg(); break;
 		case opHas: has(); break; 
 		case opMatch: match(); break;
@@ -490,7 +492,7 @@ void CTigVM::sub() {
 	}
 	else {
 		result = op1.getIntValue() - op2.getIntValue();
-	}
+		}
 	stack.push(result);
 }
 
@@ -716,7 +718,7 @@ void CTigVM::purge() {
 	//otherwise, find all hot text function calls using that obj/member combo...
 	vector<unsigned int> hotFnIds;
 	for (auto fnCall : hotTextFnCalls.container) {
-		if (fnCall.second.msgId == memberId && fnCall.second.objId == objId)
+		if (fnCall.second.options[0].msgId == memberId && fnCall.second.options[0].objId == objId)
 			hotFnIds.push_back(fnCall.first);
 	}
 
@@ -1029,18 +1031,64 @@ void CTigVM::makeHot() {
 	for (int p = 0; p < paramCount; p++) {
 		params[p] = stack.pop();
 	}
+	reverse(params.begin(), params.end());
 
 	int objId = stack.pop().getObjId();
 	int method = stack.pop().getIntValue();
 	std::string text = stack.pop().getStringValue();
 
-	THotTextFnCall fnCall;
+
+	TFnCall fnCall;
 	fnCall.msgId = method;
 	fnCall.objId = objId;
 	for (auto param : params) {
 		fnCall.params.push_back(param);
 	}
-	unsigned int id = hotTextFnCalls.addItem(fnCall);
+
+	THotTextFnCall hotTextCall;
+	hotTextCall.hotText = text;
+	hotTextCall.options.push_back(fnCall);
+	unsigned int id = hotTextFnCalls.addItem(hotTextCall);
+
+	text = "\\h{" + std::to_string(id) + "}" + text + "\\h";
+	stack.push(text);
+}
+
+/** Same as makeHot, but where the text matches an existing hot text, it isn't sent to output. 
+	This enables the overloading of hot texts with multiple function calls.*/
+void CTigVM::makeHotAlt() {
+	int paramCount = readByte();
+	std::vector<CTigVar> params(paramCount);
+	for (int p = 0; p < paramCount; p++) {
+		params[p] = stack.pop();
+	}
+	reverse(params.begin(), params.end());
+	int objId = stack.pop().getObjId();
+	int method = stack.pop().getIntValue();
+	std::string text = stack.pop().getStringValue();
+
+
+	TFnCall fnCall;
+	fnCall.msgId = method;
+	fnCall.objId = objId;
+	for (auto param : params) {
+		fnCall.params.push_back(param);
+	}
+
+	//do we already have a function call for this hot text?
+	unsigned int id = hotTextFnCalls.getItem(text);
+	if (id) {
+		//it's a variant
+		hotTextFnCalls.getItemPtr(id)->options.push_back(fnCall);
+		stack.push(string(""));
+		return;
+	}
+
+	//it's a new hot text call
+	THotTextFnCall hotTextCall;
+	hotTextCall.hotText = text;
+	hotTextCall.options.push_back(fnCall);
+	id = hotTextFnCalls.addItem(hotTextCall);
 
 	text = "\\h{" + std::to_string(id) + "}" + text + "\\h";
 	stack.push(text);
@@ -1049,7 +1097,7 @@ void CTigVM::makeHot() {
 
 
 void CTigVM::brk() {
-	cerr << "\nBreak triggered at PC " << pc << ". ";
+	liveLog << "\nBreak triggered at PC " << pc << ". ";
 }
 
 void CTigVM::move() {
@@ -1169,6 +1217,23 @@ void CTigVM::arrayPush() {
 	if (pVar->type != tigArray)
 		pVar->setArray();
 	pVar->pArray->elements.push_back(value);
+}
+
+void CTigVM::arrayRemove() {
+	int varId = stack.pop().getIntValue();
+	CTigVar* pVar = resolveVariableAddress(varId);
+	CTigVar value = stack.pop();
+	if (pVar->type != tigArray) {
+		liveLog << alertMsg << "\nError! Attempt to remove element from non-array.";
+		return;
+	}
+	for (unsigned int x = 0; x < pVar->pArray->elements.size(); x++) {
+		if (pVar->pArray->elements[x] == value) {
+			pVar->pArray->elements.erase(pVar->pArray->elements.begin() + x);
+			return;
+		}
+
+	}
 }
 
 void CTigVM::msg() {
@@ -1643,11 +1708,14 @@ std::string CTigVM::devil(std::string text) {
 			while (found != std::string::npos) {
 				std::string hotStr;
 
-				THotTextFnCall fnCall;
+				THotTextFnCall hotTxtFnCall;
+				TFnCall fnCall;
 				fnCall.msgId = hotKeyword.msgId;
 				fnCall.objId = hotKeyword.objId;
 				fnCall.params = hotKeyword.params;
-				unsigned int id = hotTextFnCalls.addItem(fnCall);
+				hotTxtFnCall.hotText = hotKeyword.text;
+				hotTxtFnCall.options.push_back(fnCall);
+				unsigned int id = hotTextFnCalls.addItem(hotTxtFnCall);
 
 				hotStr = "\\h{" + std::to_string(id) + "}" + hotKeyword.text + "\\h";
 				text.replace(found, hotKeyword.text.size(), hotStr);
@@ -1687,8 +1755,14 @@ void CTigVM::removeHotTextFnCall(unsigned int id) {
 	hotTextFnCalls.removeItem(id);
 }
 
-/** Return the stored function call for the given hot text id. */
-THotTextFnCall CTigVM::getHotTextFnCall(unsigned int id) {
+/** Return the stored function call for the given hot text id and variant. */
+TFnCall CTigVM::getHotTextFnCall(unsigned int id, int variant) {
+	THotTextFnCall  hotTextFnCall =  hotTextFnCalls.getItem(id);
+	return hotTextFnCall.options[variant];
+}
+
+/** Return the entrire stored function call record the given hot text id. */
+THotTextFnCall CTigVM::getHotTextFnCallRec(unsigned int id) {
 	return hotTextFnCalls.getItem(id);
 }
 
