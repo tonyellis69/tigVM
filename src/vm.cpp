@@ -233,6 +233,7 @@ void CTigVM::execute() {
 		case opOpenWin: openWin(); break;
 		case opWin: win(); break;
 		case opClr: clr(); break;
+		case opClrMarked: clrMarked(); break;
 		case opStyle: style(); break;
 		case opCap: cap(); break;
 		case opCapNext: capNext(); break;
@@ -297,6 +298,7 @@ unsigned int CTigVM::readWord() {
 	nextInt += progBuf[pc + 1] << 8;
 	nextInt += progBuf[pc + 2] << 16;
 	nextInt += progBuf[pc + 3] << 24;
+	 //int nextInt = (int&)progBuf[pc];
 	pc += 4;
 	return nextInt;
 }
@@ -689,6 +691,7 @@ void CTigVM::hot() {
 	for (int p = 0; p < paramCount; p++) {
 		params[p] = stack.pop();
 	}
+	std::reverse(params.begin(),params.end());
 
 	THotTExt hotKeyword;
 	hotKeyword.objId = stack.pop().getIntValue();
@@ -1045,10 +1048,15 @@ void CTigVM::makeHot() {
 		fnCall.params.push_back(param);
 	}
 
-	THotTextFnCall hotTextCall;
-	hotTextCall.hotText = text;
-	hotTextCall.options.push_back(fnCall);
-	unsigned int id = hotTextFnCalls.addItem(hotTextCall);
+	//Do we already have a function call for this hot text?
+	//The it's a duplicate, so don't create a new hot id.
+	unsigned int id = hotTextFnCalls.getItem(text);
+	if (id == 0) {
+		THotTextFnCall hotTextCall;
+		hotTextCall.hotText = text;
+		hotTextCall.options.push_back(fnCall);
+		id = hotTextFnCalls.addItem(hotTextCall);
+	}
 
 	text = "\\h{" + std::to_string(id) + "}" + text + "\\h";
 	stack.push(text);
@@ -1149,6 +1157,11 @@ void CTigVM::win() {
 
 void CTigVM::clr() {
 	clearWin();
+}
+
+/** Tell the user to remove the most recent marked text, if any.*/
+void CTigVM::clrMarked() {
+	clearMarkedText();
 }
 
 void CTigVM::style() {

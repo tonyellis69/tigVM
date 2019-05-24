@@ -155,6 +155,7 @@ public:
 	void openWin();
 	void win();
 	void clr();
+	void clrMarked();
 	void style();
 	void cap();
 	void capNext();
@@ -195,6 +196,7 @@ public:
 	virtual void purge(int memberId, int objId) {};
 	virtual void purge(unsigned int hotFnCallId) {};
 	virtual void clearWin() {};
+	virtual void clearMarkedText() {};
 	virtual void openWindow(int objId) {};
 	virtual void messageApp(int p1, int p2) {};
 	virtual void logText(std::string& text) {};
