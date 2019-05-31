@@ -49,9 +49,12 @@ void CVMapp::clearMarkedText() {
 	pApp->vmMessage(msg);
 }
 
-void CVMapp::openWindow(int objId) {
+void CVMapp::openWindow(int objId, bool modal) {
 	TvmAppMsg msg;
-	msg.type = appOpenWin;
+	if (modal)
+		msg.type = appOpenWinModal;
+	else
+		msg.type = appOpenWin;
 	msg.integer = objId;
 	pApp->vmMessage(msg);
 }

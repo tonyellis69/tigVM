@@ -4,7 +4,7 @@
 //#include "..\3DEngine\src\BaseApp.h"
 
 enum TvmAppMsgType {appNone,appWriteText,appWriteBold,appHotText,appPurge,appClearWin,
-	appOpenWin,appMsg, appTempTxt, appPause, appUnpause, appClearMarked};
+	appOpenWin, appOpenWinModal, appMsg, appTempTxt, appPause, appUnpause, appClearMarked};
 struct TvmAppMsg {
 	TvmAppMsgType type;
 	std::string text;
@@ -23,7 +23,7 @@ public:
 	void purge(unsigned int hotFnCallId);
 	void clearWin();
 	void clearMarkedText();
-	void openWindow(int objId);
+	void openWindow(int objId, bool modal);
 	void messageApp(int p1, int p2);
 	void logText(std::string& text);
 	void temporaryText(int onOff, int winId);

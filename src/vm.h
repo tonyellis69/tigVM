@@ -153,6 +153,7 @@ public:
 	void brk();
 	void move();
 	void openWin();
+	void openWinModal();
 	void win();
 	void clr();
 	void clrMarked();
@@ -197,7 +198,7 @@ public:
 	virtual void purge(unsigned int hotFnCallId) {};
 	virtual void clearWin() {};
 	virtual void clearMarkedText() {};
-	virtual void openWindow(int objId) {};
+	virtual void openWindow(int objId, bool modal) {};
 	virtual void messageApp(int p1, int p2) {};
 	virtual void logText(std::string& text) {};
 	virtual void temporaryText(int onOff, int winId) {};

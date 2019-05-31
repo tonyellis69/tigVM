@@ -231,6 +231,7 @@ void CTigVM::execute() {
 		case opBrk: brk(); break;
 		case opMove: move(); break;
 		case opOpenWin: openWin(); break;
+		case opOpenWinModal: openWinModal(); break;
 		case opWin: win(); break;
 		case opClr: clr(); break;
 		case opClrMarked: clrMarked(); break;
@@ -1049,9 +1050,19 @@ void CTigVM::makeHot() {
 	}
 
 	//Do we already have a function call for this hot text?
-	//The it's a duplicate, so don't create a new hot id.
 	unsigned int id = hotTextFnCalls.getItem(text);
-	if (id == 0) {
+	if (id != 0) {
+		THotTextFnCall dupCall = hotTextFnCalls.getItem(id);
+		for (auto variant : dupCall.options) {
+			if (!(fnCall == variant)) { //not exact duplicate
+				id = 0; //so ensure we store this function call 
+				break;
+			}
+		}
+	}
+
+	//If it's not a duplicate, create a new hot id.
+	if (id == 0 ) {
 		THotTextFnCall hotTextCall;
 		hotTextCall.hotText = text;
 		hotTextCall.options.push_back(fnCall);
@@ -1146,8 +1157,15 @@ void CTigVM::move() {
 /** Tell user app we want to open a window. */
 void CTigVM::openWin() {
 	int objId = stack.pop().getObjId();
-	openWindow(objId);
+	openWindow(objId,false);
 }
+
+/** Tell user app we want to open a modal window. */
+void CTigVM::openWinModal () {
+	int objId = stack.pop().getObjId();
+	openWindow(objId,true);
+}
+
 
 /** Set the window we're outputting to. */
 void CTigVM::win() {
@@ -1385,9 +1403,28 @@ void CTigVM::newOp() {
 	stack.pushObj(nextFreeObjNo++);
 }
 
+/** Remove this object from the virtual machine. */
 void CTigVM::deleteOp() {
 	CTigVar obj = stack.pop();
-	objects.erase(obj.getObjId());
+	int objId = obj.getObjId();
+	
+	int parentObj = getMemberInt(objId, parentId);
+
+	if (parentObj) {   //remove from object tree
+		int childObj = getMemberInt(parentObj, childId);
+		int olderSibling = 0;
+		while (childObj != objId) {
+			olderSibling = childObj;
+			childObj = getMemberInt(childObj, siblingId);
+		}
+		int objSib = getMemberInt(objId, siblingId);
+		if (olderSibling)
+			objects[olderSibling].members[siblingId].setObjId(objSib);
+		else
+			objects[parentObj].members[childId].setObjId(objSib);
+	}
+
+	objects.erase(objId);
 }
 
 
