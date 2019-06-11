@@ -1097,13 +1097,13 @@ void CTigVM::makeHotAlt() {
 	//do we already have a function call for this hot text?
 	unsigned int id = hotTextFnCalls.getItem(text);
 	if (id) {
-		//it's a variant
+		//make this a variant
 		hotTextFnCalls.getItemPtr(id)->options.push_back(fnCall);
 		stack.push(string(""));
 		return;
 	}
 
-	//it's a new hot text call
+	//no? create a new hot text call
 	THotTextFnCall hotTextCall;
 	hotTextCall.hotText = text;
 	hotTextCall.options.push_back(fnCall);
