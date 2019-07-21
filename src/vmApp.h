@@ -4,7 +4,8 @@
 //#include "..\3DEngine\src\BaseApp.h"
 
 enum TvmAppMsgType {appNone,appWriteText,appWriteBold,appHotText,appPurge,appClearWin,
-	appOpenWin, appOpenWinModal, appMsg, appTempTxt, appPause, appUnpause, appClearMarked};
+	appOpenWin, appOpenWinModal, appMsg, appTempTxt, appPause, appUnpause, appClearMarked,
+	appMouseoverHotTxt, appSolidifyTmpText};
 struct TvmAppMsg {
 	TvmAppMsgType type;
 	std::string text;
