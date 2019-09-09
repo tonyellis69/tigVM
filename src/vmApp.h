@@ -1,16 +1,20 @@
 #pragma once
 
+#include "..\\glm\glm\glm.hpp"
+
 #include "vm.h"
 //#include "..\3DEngine\src\BaseApp.h"
 
 enum TvmAppMsgType {appNone,appWriteText,appWriteBold,appHotText,appPurge,appClearWin,
 	appOpenWin, appOpenWinModal, appMsg, appTempTxt, appPause, appUnpause, appClearMarked,
-	appMouseoverHotTxt, appSolidifyTmpText};
+	appHotTxtChange, appSolidifyTmpText, appCollapseTmpTxt, appDisplayNarrativeChoice,
+	appFlush, appSetStyle, appClearToBookmark, appSetLineFadein, appFinishDisplay};
 struct TvmAppMsg {
 	TvmAppMsgType type;
 	std::string text;
 	int integer;
 	int integer2;
+	glm::i32vec2 pos;
 };
 
 class CBaseApp;
@@ -29,6 +33,7 @@ public:
 	void logText(std::string& text);
 	void temporaryText(int onOff, int winId);
 	void handlePause(bool pauseOn);
+	void flush();
 
 	CBaseApp* pApp; ///<Pointer to the user application.
 };

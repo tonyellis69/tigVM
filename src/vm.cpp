@@ -36,6 +36,7 @@ bool CTigVM::loadProgFile(std::string filename) {
 	readEventTable(progFile);
 	readObjectDefTable(progFile);
 	readMemberNameTable(progFile);
+	readFlagNameTable(progFile);
 
 
 	initIds();
@@ -171,6 +172,16 @@ void CTigVM::readMemberNameTable(std::ifstream & progFile) {
 	progFile.read((char*)&memberNameTableSize, 4);
 	memberNames.resize(memberNameTableSize);
 	for (auto &name : memberNames) {
+		std::getline(progFile, name, '\0');
+	}
+}
+
+/** Read the list of flag names from the program file and store them. */
+void CTigVM::readFlagNameTable(std::ifstream& progFile) {
+	int flagNameTableSize;
+	progFile.read((char*)& flagNameTableSize, 4);
+	flagNames.resize(flagNameTableSize);
+	for (auto& name : flagNames) {
 		std::getline(progFile, name, '\0');
 	}
 }
@@ -1030,6 +1041,8 @@ void CTigVM::children() {
 /** Register the function call on the stack as a hot text call, then wrap the associated string with hot text 
 	markup identifying that call. */
 void CTigVM::makeHot() {
+	flush();
+
 	int paramCount = readByte();
 	std::vector<CTigVar> params(paramCount);
 	for (int p = 0; p < paramCount; p++) {
@@ -1076,6 +1089,8 @@ void CTigVM::makeHot() {
 /** Same as makeHot, but where the text matches an existing hot text, it isn't sent to output. 
 	This enables the overloading of hot texts with multiple function calls.*/
 void CTigVM::makeHotAlt() {
+	flush();
+
 	int paramCount = readByte();
 	std::vector<CTigVar> params(paramCount);
 	for (int p = 0; p < paramCount; p++) {
@@ -1603,6 +1618,13 @@ int CTigVM::getMemberId(std::string name) {
 	return it - memberNames.begin() + memberIdStart;
 }
 
+/** Return the bitmask for this flag. */
+int CTigVM::getFlagBitmask(std::string flagName) {
+	auto it = find(flagNames.begin(), flagNames.end(), flagName);
+	int bitMask = std::distance(flagNames.begin(), it);
+	return  1 << bitMask;
+
+}
 
 CTigVar CTigVM::callMember(int objId, int memberId, initializer_list<CTigVar> params) {
 	std::vector<CTigVar> paramList;
@@ -1811,6 +1833,13 @@ TFnCall CTigVM::getHotTextFnCall(unsigned int id, int variant) {
 	return hotTextFnCall.options[variant];
 }
 
+/** Return the obj associated with the given hot text function call. */
+int CTigVM::getHotTextFnCallObj(int hotId) {
+	if (hotId == -1)
+		return -1;
+	return getHotTextFnCall(hotId,0).objId;
+}
+
 /** Return the entrire stored function call record the given hot text id. */
 THotTextFnCall CTigVM::getHotTextFnCallRec(unsigned int id) {
 	return hotTextFnCalls.getItem(id);
@@ -1827,5 +1856,15 @@ void CTigVM::reset() {
 /** Reload the last progfile into memory again. */
 bool CTigVM::reloadProgFile() {
 	return loadProgFile(currentProgFile);
+}
+
+/** Return true if the given object has this flag set. */
+bool CTigVM::hasFlag(int objId, int flagId) {
+
+	if (objects[objId].members.find(flagsId) == objects[objId].members.end())
+		return false;
+	if (getMemberInt(objId, flagsId) && flagId)
+		return true;
+	return false;
 }
 

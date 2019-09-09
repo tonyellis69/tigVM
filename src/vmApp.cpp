@@ -90,5 +90,10 @@ void CVMapp::handlePause(bool pauseOn) {
 	pApp->vmMessage(msg);
 }
 
+/** Process the app message queue before returning. */
+void CVMapp::flush() {
+	pApp->vmMessage(TvmAppMsg { appFlush });
+}
+
 
 

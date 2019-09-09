@@ -95,6 +95,7 @@ public:
 	void readEventTable(std::ifstream& progFile);
 	void readObjectDefTable(std::ifstream& progFile);
 	void readMemberNameTable(std::ifstream & progFile);
+	void readFlagNameTable(std::ifstream& progFile);
 	void execute();
 	void update();
 
@@ -203,11 +204,14 @@ public:
 	virtual void logText(std::string& text) {};
 	virtual void temporaryText(int onOff, int winId) {};
 	virtual void handlePause(bool pauseOn) {};
+	virtual void flush() {};
 	
 	CTigVar getGlobalVar(std::string varName);
 	CTigVar getMember(int objNo, int memberId);
 	int getMemberInt(int objNo, int memberId);
 	int getMemberId(std::string  name);
+
+	int getFlagBitmask(std::string name);
 
 	CTigVar callMember(int objId, int memberId, std::initializer_list<CTigVar> params);
 	CTigVar callMember(int objId, std::string msgName, std::initializer_list<CTigVar> params);
@@ -231,11 +235,14 @@ public:
 
 	void removeHotTextFnCall(unsigned int id);
 	TFnCall getHotTextFnCall(unsigned int id, int variant);
+	int getHotTextFnCallObj(int hotId);
 
 	THotTextFnCall getHotTextFnCallRec(unsigned int id);
 
 	void reset();
 	bool reloadProgFile();
+
+	bool hasFlag(int objId, int flagId);
 
 	int progBufSize;
 	char* progBuf; 
@@ -248,6 +255,7 @@ public:
 	std::vector<TOptionRec> currentOptionList; ///<A list of user options
 	std::map<int, CObjInstance> objects; ///<Object instances.
 	std::vector<std::string> memberNames; ///<Member names in id number order.
+	std::vector<std::string> flagNames; ///<Flag names in bitmask order.
 
 	CStack stack; ///<The virtual machine stack.
 
@@ -260,6 +268,7 @@ public:
 	int siblingId; ///<Member id for the 'sibling' member
 	int parentId; ///<Member id for the 'parent' member
 	int flagsId; ///<Member id for the '#flags' member
+	int gameStateId; ///
 
 
 	int window; ///<The output we're currently writing to.
