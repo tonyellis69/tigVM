@@ -102,10 +102,12 @@ public:
 	int readNextOp();
 	std::string readString();
 	unsigned int readWord();
+	float readFWord();
 	char readByte();
 
 	void pushInt();
 	void pushStr();
+	void pushFloat();
 	void pushVar();
 	void print();
 	void option();
@@ -113,6 +115,8 @@ public:
 	void end();
 	void assign();
 	void getString();
+	void div();
+	void mult();
 	void add();
 	void sub();
 	void mod();
@@ -181,10 +185,12 @@ public:
 	void finalLoop();
 	void firstLoop();
 	void roll();
+	void rand();
 	void sortDesc();
 	void log();
 	void pause();
-	void rand();
+	void randArray();
+	void roundOp();
 
 
 	CTigVar * resolveVariableAddress(int varId);

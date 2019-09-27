@@ -11,6 +11,7 @@ public:
 	CStack() { localVarStart = 0; };
 	void push(std::string& string);
 	void push(int n);
+	void push(float n);
 	void push(CTigVar& var);
 	void pushObj(int id);
 	void pushUndefined();
@@ -20,6 +21,9 @@ public:
 	int size() { return stack.size(); }
 	CTigVar& top(int x) {
 		return stack[stack.size() - 1 + x];
+	}
+	CTigVar& top() {
+		return stack[stack.size() - 1];
 	}
 	CTigVar pop();
 	CTigVar& local(int var);

@@ -13,6 +13,12 @@ void CStack::push(int n) {
 	stack.push_back(word);
 }
 
+void CStack::push(float n) {
+	CTigVar word;
+	word.setFloatValue(n);
+	stack.push_back(word);
+}
+
 void CStack::push(CTigVar & var) {
 	stack.push_back(var);
 }
@@ -31,7 +37,7 @@ void CStack::pushUndefined() {
 }
 
 
-/** Remove the top element of the stack, freeing any memory. */
+/** Remove the top element of the stack, and return a copy. */
 CTigVar CStack::pop() {
 	/*if (stack.back().type == tigString) {
 		delete stack.back().pStrValue;

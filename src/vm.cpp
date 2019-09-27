@@ -195,12 +195,15 @@ void CTigVM::execute() {
 		switch (opCode) {
 		case opPushInt: pushInt(); break;
 		case opPushStr: pushStr(); break;
+		case opPushFloat: pushFloat(); break;
 		case opPushVar: pushVar(); break;
 		case opPrint: print(); break;
 		case opOption: option(); break;
 		case opEnd: end(); break;
 		case opAssign: assign(); break;
 		case opGetString: getString(); break;
+		case opDiv: div(); break;
+		case opMult: mult(); break;
 		case opAdd: add(); break;
 		case opSub: sub(); break;
 		case opMod: mod(); break;
@@ -269,10 +272,12 @@ void CTigVM::execute() {
 		case opFinalLoop: finalLoop(); break;
 		case opFirstLoop: firstLoop(); break;
 		case opRoll: roll(); break;
+		case opRand: rand(); break;
 		case opSortDesc: sortDesc(); break;
 		case opLog: log(); break;
 		case opPause: pause(); break;
-		case opRand: rand(); break;
+		case opRandArray: randArray(); break;
+		case opRound: roundOp(); break;
 		}
 	}
 	if (pc >= progBufSize)
@@ -315,6 +320,12 @@ unsigned int CTigVM::readWord() {
 	return nextInt;
 }
 
+float CTigVM::readFWord() {
+	float nextFloat = (float&)progBuf[pc];
+	pc += 4;
+	return nextFloat;
+}
+
 /** Read a single byte starting at the program counter, and advance it. */
 char CTigVM::readByte() {
 	return progBuf[pc++];
@@ -331,6 +342,12 @@ void CTigVM::pushInt() {
 void CTigVM::pushStr() {
 	string text = readString();
 	stack.push(text);
+}
+
+/** Push the following float onto the stack. */
+void CTigVM::pushFloat() {
+	float f = readFWord();
+	stack.push(f);
 }
 
 /** Push the value from a global variable (or member) onto the stack. */
@@ -447,6 +464,35 @@ CTigVar* CTigVM::resolveVariableAddress(int varId, int& owningObject) {
 void CTigVM::getString() {
 	escape = true;
 	status = vmAwaitString;
+}
+
+/**Pop the top two values off the stack, divide one by the other and replace the result. */
+void CTigVM::div() {
+	CTigVar op2 = stack.pop();
+	CTigVar op1 = stack.pop();
+	/*CTigVar result(tigUndefined);
+
+	if (op1.type == tigFloat) {
+		result = fmod(op1.getFloatValue(), op2.getFloatValue());
+	}
+	else {
+		result = op1.getIntValue() % op2.getIntValue();
+	}*/
+	stack.push(op1 / op2);
+}
+
+void CTigVM::mult() {
+	CTigVar op2 = stack.pop();
+	CTigVar op1 = stack.pop();
+	/*CTigVar result(tigUndefined);
+
+	if (op1.type == tigFloat) {
+		result = fmod(op1.getFloatValue(), op2.getFloatValue());
+	}
+	else {
+		result = op1.getIntValue() % op2.getIntValue();
+	}*/
+	stack.push(op1 * op2);
 }
 
 /** Pop the two top values off the stack, add, and push the result. */
@@ -1477,6 +1523,23 @@ void CTigVM::roll() {
 
 	stack.push(die(randEngine));
 }
+ 
+/** Generate a random number between 0 and the value on the stack. */
+void CTigVM::rand() {
+	CTigVar param = stack.pop();
+	if (param.type == tigInt) {
+		std::uniform_int_distribution<> randInt{ 1,param.getIntValue() };
+		stack.push(randInt(randEngine));
+		return;
+	}
+	if (param.type == tigFloat) {
+		std::uniform_real_distribution<float> randFloat{ 1,param.getFloatValue() };
+		stack.push(randFloat(randEngine));
+		return;
+	}
+	stack.push(CTigVar(tigUndefined));
+	liveLog << "\nError! Attempt to pass non-number to rand().";
+}
 
 
 /** Sort the array on the stack in descending order using the supplied member id. */
@@ -1516,7 +1579,7 @@ void CTigVM::pause() {
 }
 
 /** Return a random element from the array on the stack. */
-void CTigVM::rand() {
+void CTigVM::randArray() {
 	int varId = stack.pop().getIntValue();
 	CTigVar* array = resolveVariableAddress(varId);
 	if (array->type != tigArray) {
@@ -1536,6 +1599,16 @@ void CTigVM::rand() {
 	unsigned int randomIndex = randomRange(randEngine);
 	CTigVar randomElement = array->pArray->elements[randomIndex];
 	stack.push(randomElement);
+}
+
+/** Round the float value on the stack and return an integer.*/
+void CTigVM::roundOp() {
+	CTigVar& value = stack.top();
+	if (value.type == tigFloat) {
+		value.setIntValue(round(value.getFloatValue()));
+	}
+	else
+		liveLog << "\nError! Attempt to round non-float value.";
 }
 
 

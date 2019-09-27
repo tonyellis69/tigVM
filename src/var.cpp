@@ -1,5 +1,6 @@
 #include "var.h"
 #include <iostream>
+#include <sstream>
 
 CTigVar::CTigVar(const CTigVar & var2) {
 	type = var2.type;
@@ -9,6 +10,8 @@ CTigVar::CTigVar(const CTigVar & var2) {
 		setArray();
 		pArray->elements = var2.pArray->elements;
 	}
+	else if (var2.type == tigFloat)
+		floatValue = var2.floatValue;
 	else
 		intValue = var2.intValue;
 
@@ -172,6 +175,38 @@ CTigVar CTigVar::operator-() {
 	return CTigVar(tigUndefined);
 }
 
+CTigVar CTigVar::operator / (CTigVar& var2) {
+	if (var2.type == tigFloat) {
+		if (type == tigFloat)
+			return getFloatValue() / var2.getFloatValue();
+		if (type == tigInt)
+			return getIntValue() / var2.getFloatValue();
+	}
+	if (var2.type == tigInt) {
+		if (type == tigFloat)
+			return getFloatValue() / var2.getIntValue();
+		if (type == tigInt)
+			return getIntValue() / var2.getIntValue();
+	}
+	return CTigVar(tigUndefined);
+}
+
+CTigVar CTigVar::operator*(CTigVar& var2) {
+	if (var2.type == tigFloat) {
+		if (type == tigFloat)
+			return getFloatValue() * var2.getFloatValue();
+		if (type == tigInt)
+			return getIntValue() * var2.getFloatValue();
+	}
+	if (var2.type == tigInt) {
+		if (type == tigFloat)
+			return getFloatValue() * var2.getIntValue();
+		if (type == tigInt)
+			return getIntValue() * var2.getIntValue();
+	}
+	return CTigVar(tigUndefined);
+}
+
 
 
 
@@ -221,8 +256,14 @@ std::string CTigVar::getStringValue() {
 		return *pStrValue;
 	if (type == tigInt)
 		return std::to_string(intValue);
-	if (type == tigFloat)
-		return std::to_string(floatValue);
+	if (type == tigFloat) {
+		std::ostringstream out;
+		out.precision(2);
+		out << std::fixed << floatValue;
+		return out.str();
+
+		//return std::to_string(floatValue);
+	}
 	if (type == tigArray)
 		return std::to_string(pArray->elements.size());
 	if (type == tigObj)
