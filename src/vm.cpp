@@ -278,6 +278,8 @@ void CTigVM::execute() {
 		case opPause: pause(); break;
 		case opRandArray: randArray(); break;
 		case opRound: roundOp(); break;
+		case opMin: minOp(); break;
+		case opMax: maxOp(); break;
 		}
 	}
 	if (pc >= progBufSize)
@@ -1528,12 +1530,12 @@ void CTigVM::roll() {
 void CTigVM::rand() {
 	CTigVar param = stack.pop();
 	if (param.type == tigInt) {
-		std::uniform_int_distribution<> randInt{ 1,param.getIntValue() };
+		std::uniform_int_distribution<> randInt{ 0,param.getIntValue() };
 		stack.push(randInt(randEngine));
 		return;
 	}
 	if (param.type == tigFloat) {
-		std::uniform_real_distribution<float> randFloat{ 1,param.getFloatValue() };
+		std::uniform_real_distribution<float> randFloat{ 0,param.getFloatValue() };
 		stack.push(randFloat(randEngine));
 		return;
 	}
@@ -1609,6 +1611,33 @@ void CTigVM::roundOp() {
 	}
 	else
 		liveLog << "\nError! Attempt to round non-float value.";
+}
+
+/** Find the smallest of the top two values on the stack and leave on the stack. */
+void CTigVM::minOp(){
+	CTigVar op2 = stack.pop();
+	CTigVar op1 = stack.pop();
+	CTigVar result;
+	if (op1.type == tigFloat) {
+		result = min(op1.getFloatValue(), op2.getFloatValue());
+	} else {
+		result = min(op1.getIntValue(), op2.getIntValue());
+	}
+	stack.push(result);
+}
+
+/** Find the largest of the top two values on the stack and leave on the stack. */
+void CTigVM::maxOp() {
+	CTigVar op2 = stack.pop();
+	CTigVar op1 = stack.pop();
+	CTigVar result;
+	if (op1.type == tigFloat) {
+		result = max(op1.getFloatValue(), op2.getFloatValue());
+	}
+	else {
+		result = max(op1.getIntValue(), op2.getIntValue());
+	}
+	stack.push(result);
 }
 
 

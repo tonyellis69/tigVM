@@ -191,6 +191,8 @@ public:
 	void pause();
 	void randArray();
 	void roundOp();
+	void minOp();
+	void maxOp();
 
 
 	CTigVar * resolveVariableAddress(int varId);
