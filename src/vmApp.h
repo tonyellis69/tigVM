@@ -12,6 +12,7 @@ enum TvmAppMsgType {appNone,appWriteText,appWriteBold,appHotText,appPurge,appCle
 	appFlush, appSetStyle, appClearToBookmark, appSetLineFadein, appFinishDisplay};
 struct TvmAppMsg {
 	TvmAppMsgType type;
+	std::string msgString;
 	std::string text;
 	int integer;
 	int integer2;
@@ -31,6 +32,7 @@ public:
 	void clearMarkedText();
 	void openWindow(int objId, bool modal);
 	void messageApp(int p1, int p2);
+	void messageApp(const std::string& p1, int p2);
 	void logText(std::string& text);
 	void temporaryText(int onOff, int winId);
 	void handlePause(bool pauseOn);

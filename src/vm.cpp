@@ -126,6 +126,7 @@ void CTigVM::readObjectDefTable(std::ifstream & progFile) {
 				blank.setObjId(intValue); break;
 			case tigUndefined:
 				progFile.read((char*)&intValue, 4); //can just throw this away
+				blank.type = tigUndefined;
 				break;
 			case tigArray:
 				unsigned int arraySize;
@@ -152,6 +153,7 @@ void CTigVM::readObjectDefTable(std::ifstream & progFile) {
 							element.setObjId(intValue); break;
 						case tigUndefined:
 							progFile.read((char*)&intValue, 4); //can just throw this away
+							element.type = tigUndefined;
 							break;
 						}
 					}
@@ -431,7 +433,13 @@ CTigVar* CTigVM::resolveVariableAddress(int varId, int& owningObject) {
 	}
 
 	//not a local variable...
-	objectId = stack.pop().getIntValue(); //...so get the parent object
+	CTigVar parentObj = stack.pop();//...so get the parent object
+	if (parentObj.type == tigUndefined) {
+		liveLog << "\nError! Attempt to access undefined object via member " << getMemberName(varId);
+		return NULL;
+	}
+
+	objectId = parentObj.getIntValue(); 
 	owningObject = objectId;
 	if (objectId == zeroObject) { //it's either a local member or global
 		owningObject = currentObject;
@@ -1089,7 +1097,7 @@ void CTigVM::children() {
 /** Register the function call on the stack as a hot text call, then wrap the associated string with hot text 
 	markup identifying that call. */
 void CTigVM::makeHot() {
-	flush();
+//	flush();
 
 	int paramCount = readByte();
 	std::vector<CTigVar> params(paramCount);
@@ -1137,7 +1145,7 @@ void CTigVM::makeHot() {
 /** Same as makeHot, but where the text matches an existing hot text, it isn't sent to output. 
 	This enables the overloading of hot texts with multiple function calls.*/
 void CTigVM::makeHotAlt() {
-	flush();
+	//flush();
 
 	int paramCount = readByte();
 	std::vector<CTigVar> params(paramCount);
@@ -1336,7 +1344,10 @@ void CTigVM::msg() {
 	for (int p = 0; p < paramCount; p++) {
 		params[p] = stack.pop();
 	}
-	messageApp(params[1].getIntValue(), params[0].getIntValue());
+	if (params[1].type == tigString)
+		messageApp(params[1].getStringValue(), params[0].getIntValue());
+	else
+		messageApp(params[1].getIntValue(), params[0].getIntValue());
 }
 
 /** True if the given object has the given member. */

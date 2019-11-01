@@ -209,6 +209,7 @@ public:
 	virtual void clearMarkedText() {};
 	virtual void openWindow(int objId, bool modal) {};
 	virtual void messageApp(int p1, int p2) {};
+	virtual void messageApp(const std::string& p1, int p2) {};
 	virtual void logText(std::string& text) {};
 	virtual void temporaryText(int onOff, int winId) {};
 	virtual void handlePause(bool pauseOn) {};

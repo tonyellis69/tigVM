@@ -59,6 +59,7 @@ void CVMapp::openWindow(int objId, bool modal) {
 	pApp->vmMessage(msg);
 }
 
+//TO DO: can delete this as vm messages are now all string based
 void CVMapp::messageApp(int p1, int p2) {
 	TvmAppMsg msg;
 	msg.type = appMsg;
@@ -66,6 +67,16 @@ void CVMapp::messageApp(int p1, int p2) {
 	msg.integer2 = p2;
 	pApp->vmMessage(msg);
 }
+
+void CVMapp::messageApp(const std::string& p1, int p2) {
+	TvmAppMsg msg;
+	msg.type = appMsg;
+	msg.msgString = p1;
+	msg.integer2 = p2;
+	pApp->vmMessage(msg);
+}
+
+
 
 void CVMapp::logText(std::string & text) {
 	liveLog << text;
