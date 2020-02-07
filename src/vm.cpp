@@ -15,6 +15,7 @@ CTigVM::CTigVM() {
 	window = 0;
 	paused = false;
 	capitaliseNext = false;
+	CTigObj::pVM = this;
 }
 
 CTigVM::~CTigVM() {
@@ -35,6 +36,7 @@ bool CTigVM::loadProgFile(std::string filename) {
 
 	readEventTable(progFile);
 	readObjectDefTable(progFile);
+	readObjectNameTable(progFile);
 	readMemberNameTable(progFile);
 	readFlagNameTable(progFile);
 
@@ -85,7 +87,7 @@ void CTigVM::readObjectDefTable(std::ifstream & progFile) {
 	nextFreeObjNo = 0;
 	progFile.read((char*)&objectDefTableSize, 4);
 	for (int objNo = 0; objNo < objectDefTableSize; objNo++) { //for each object...
-		CObjInstance object;
+		CTigObj object;
 		progFile.read((char*)&object.id, 4);
 
 		char noParentClasses;
@@ -165,6 +167,17 @@ void CTigVM::readObjectDefTable(std::ifstream & progFile) {
 		}
 		objects[object.id] = object;
 		nextFreeObjNo++;
+	}
+}
+
+void CTigVM::readObjectNameTable(std::ifstream& progFile) {
+	int objNameTableSize;
+	progFile.read((char*)&objNameTableSize, 4);
+	string name; int id;
+	for (int obj = 0; obj < objNameTableSize; obj++) {
+		std::getline(progFile, name, '\0');
+		progFile.read((char*)&id, 4);
+		objectNames[name] = id;
 	}
 }
 
@@ -1194,12 +1207,12 @@ void CTigVM::move() {
 	int newParentId = stack.pop().getObjId();
 	int objId = stack.pop().getObjId();
 
-	CObjInstance* obj = &objects[objId];
-	CObjInstance* newParentObj = &objects[newParentId];
-	CObjInstance* objParent = &objects[obj->members[parentId].getObjId()];
+	CTigObj* obj = &objects[objId];
+	CTigObj* newParentObj = &objects[newParentId];
+	CTigObj* objParent = &objects[obj->members[parentId].getObjId()];
 
-	CObjInstance* childObj = &objects[objParent->members[childId].getObjId()];
-	CObjInstance* olderSibling = NULL;
+	CTigObj* childObj = &objects[objParent->members[childId].getObjId()];
+	CTigObj* olderSibling = NULL;
 
 	if (objParent->id) {
 		while (childObj != obj) {
@@ -1706,7 +1719,7 @@ CTigVar CTigVM::getGlobalVar(std::string varName) {
 
 /** Return a copy of the identified member. */
 CTigVar CTigVM::getMember(int objNo, int memberId) {
-	CObjInstance* obj = &objects[objNo];
+	CTigObj* obj = &objects[objNo];
 	if (obj->members.find(memberId) == obj->members.end()) {
 		CTigVar notFound(tigUndefined);
 		return notFound;
@@ -1827,7 +1840,7 @@ bool CTigVM::hasMember(int objNo, int memberNo) {
 }
 
 
-CObjInstance * CTigVM::getObject(int objId) {
+CTigObj * CTigVM::getObject(int objId) {
 	auto found = objects.find(objId);
 	if (found == objects.end())
 		return NULL;
@@ -1836,13 +1849,18 @@ CObjInstance * CTigVM::getObject(int objId) {
 
 
 
-int CTigVM::getObjectId(CObjInstance * obj) {
+int CTigVM::getObjectId(CTigObj * obj) {
 	auto it = find_if(objects.begin(), objects.end(),
-		[&](pair<int,CObjInstance> currentObj) { return currentObj.second.id == obj->id; });
+		[&](pair<int,CTigObj> currentObj) { return currentObj.second.id == obj->id; });
 	if (it == objects.end())
 		return 0;
 	return distance(objects.begin(), it)-1;
 }
+
+//ITigIbj CTigVM::getObject(const std::string objName) {
+
+//	return ITigIbj();
+//}
 
 /** Printer's devil: replaces any instances of hot text with hot text markup, and does a little tidying. */
 std::string CTigVM::devil(std::string text) {

@@ -12,6 +12,7 @@
 #include "stack.h"
 #include "daemon.h"
 #include "..\3DEngine\src\utils\idContainer.h"
+#include "tigObj.h"
 
 struct TEventRec {
 	int id;
@@ -63,14 +64,6 @@ struct THotTextFnCall {
 
 
 
-class CObjInstance {
-public:
-	CObjInstance() { id = 0;  };
-	int id;
-	std::vector<int> classIds;
-	std::map<int, CTigVar> members;
-};
-
 
 
 enum TVMmsgType { vmMsgChoice, vmMsgString };
@@ -94,6 +87,7 @@ public:
 	int readHeader(std::ifstream& progFile);
 	void readEventTable(std::ifstream& progFile);
 	void readObjectDefTable(std::ifstream& progFile);
+	void readObjectNameTable(std::ifstream& progFile);
 	void readMemberNameTable(std::ifstream & progFile);
 	void readFlagNameTable(std::ifstream& progFile);
 	void execute();
@@ -235,8 +229,9 @@ public:
 
 	bool hasMember(int objNo, int memberNo);
 
-	CObjInstance* getObject(int objId);
-	int getObjectId(CObjInstance* obj);
+	CTigObj* getObject(int objId);
+	int getObjectId(CTigObj* obj);
+	//ITigIbj getObject(const std::string objName);
 
 	std::string devil(std::string text);
 
@@ -262,7 +257,8 @@ public:
 
 	std::vector<TEventRec> eventTable; ///<Event ids and addresses.
 	std::vector<TOptionRec> currentOptionList; ///<A list of user options
-	std::map<int, CObjInstance> objects; ///<Object instances.
+	std::map<int, CTigObj> objects; ///<Object instances.
+	std::map<std::string, int> objectNames;
 	std::vector<std::string> memberNames; ///<Member names in id number order.
 	std::vector<std::string> flagNames; ///<Flag names in bitmask order.
 
