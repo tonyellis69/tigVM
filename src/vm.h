@@ -14,6 +14,8 @@
 #include "..\3DEngine\src\utils\idContainer.h"
 #include "tigObj.h"
 
+#include "Ivm.h"
+
 struct TEventRec {
 	int id;
 	int address;
@@ -78,7 +80,7 @@ enum TVMstatus { vmExecuting, vmAwaitChoice, vmAwaitString, vmEnding, vmError, v
 
 
 /** The Tig virtual machine. Reads compiled Tig code and executes it. */
-class CTigVM {
+class CTigVM : public Ivm {
 public:
 	CTigVM();
 	~CTigVM();
@@ -88,6 +90,7 @@ public:
 	void readEventTable(std::ifstream& progFile);
 	void readObjectDefTable(std::ifstream& progFile);
 	void readObjectNameTable(std::ifstream& progFile);
+	void readConstNameTable(std::ifstream& progFile);
 	void readMemberNameTable(std::ifstream & progFile);
 	void readFlagNameTable(std::ifstream& progFile);
 	void execute();
@@ -231,7 +234,8 @@ public:
 
 	CTigObj* getObject(int objId);
 	int getObjectId(CTigObj* obj);
-	//ITigIbj getObject(const std::string objName);
+	ITigObj* getObject(const std::string& objName);
+	int getConst(const std::string& constName);
 
 	std::string devil(std::string text);
 
@@ -248,6 +252,8 @@ public:
 
 	bool hasFlag(int objId, int flagId);
 
+	void callPassedFn(int objId);
+
 	int progBufSize;
 	char* progBuf; 
 	int pc; ///<Program counter. Points at the next command to execute.
@@ -259,6 +265,7 @@ public:
 	std::vector<TOptionRec> currentOptionList; ///<A list of user options
 	std::map<int, CTigObj> objects; ///<Object instances.
 	std::map<std::string, int> objectNames;
+	std::map<std::string, int> constNames;
 	std::vector<std::string> memberNames; ///<Member names in id number order.
 	std::vector<std::string> flagNames; ///<Flag names in bitmask order.
 
@@ -283,7 +290,17 @@ public:
 
 	std::string latestText; ///<The most recent text sent to output.
 
+	std::string callName; ///<Temp store for name of a function being called externally.
+	std::vector<CTigVar> callParams; ///<Temp store for paramaters of function called externally.
+
 private:
+	void callExternal(int objId, int memberId);
+
+	int getStackValueInt();
+	float getStackValueFloat();
+	std::string getStackValueStr();
+
+
 	std::string currentProgFile; ///<Path of the current program file.
 	int nextFreeObjNo;
 
@@ -291,4 +308,5 @@ private:
 	//std::shuffle_order_engine<std::mt19937, 256> randEngine;
 	bool paused;
 	bool capitaliseNext; ///<If true, capitaliseNext the next letter printed.
+
 };

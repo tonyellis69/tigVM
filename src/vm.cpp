@@ -15,7 +15,7 @@ CTigVM::CTigVM() {
 	window = 0;
 	paused = false;
 	capitaliseNext = false;
-	CTigObj::pVM = this;
+	CTigObj::setVM(this);
 }
 
 CTigVM::~CTigVM() {
@@ -37,6 +37,7 @@ bool CTigVM::loadProgFile(std::string filename) {
 	readEventTable(progFile);
 	readObjectDefTable(progFile);
 	readObjectNameTable(progFile);
+	readConstNameTable(progFile);
 	readMemberNameTable(progFile);
 	readFlagNameTable(progFile);
 
@@ -178,6 +179,17 @@ void CTigVM::readObjectNameTable(std::ifstream& progFile) {
 		std::getline(progFile, name, '\0');
 		progFile.read((char*)&id, 4);
 		objectNames[name] = id;
+	}
+}
+
+void CTigVM::readConstNameTable(std::ifstream& progFile) {
+	int constNameTableSize;
+	progFile.read((char*)&constNameTableSize, 4);
+	string name; int id;
+	for (int obj = 0; obj < constNameTableSize; obj++) {
+		std::getline(progFile, name, '\0');
+		progFile.read((char*)&id, 4);
+		constNames[name] = id;
 	}
 }
 
@@ -660,6 +672,13 @@ void CTigVM::call() {
 	currentObject = obj;
 
 	pc = callee->getFuncAddress();
+
+	if (pc == -1) {
+		/////!!! pass params, have callExternal restack them as further down
+		callExternal(obj,memberId);
+		return;
+	}
+
 
 	int varCount = readByte();
 	stack.reserveLocalVars(varCount);
@@ -1857,10 +1876,24 @@ int CTigVM::getObjectId(CTigObj * obj) {
 	return distance(objects.begin(), it)-1;
 }
 
-//ITigIbj CTigVM::getObject(const std::string objName) {
+ITigObj* CTigVM::getObject(const std::string& objName) {
+	int objId = objectNames[objName];
+	if (objId == 0) {
+		fatalLog << "\nError! Object '" << objName << "' not found.";
+	}
+	return &objects[objId];
+}
 
-//	return ITigIbj();
-//}
+int CTigVM::getConst(const std::string& constName) {
+	int constValue = 0;
+	try {
+		constValue = constNames.at(constName);
+	}
+	catch (const std::out_of_range & oor) {
+		fatalLog << "\nError! Const '" << constName << "' not found.";
+	}
+	return constValue;
+}
 
 /** Printer's devil: replaces any instances of hot text with hot text markup, and does a little tidying. */
 std::string CTigVM::devil(std::string text) {
@@ -1997,5 +2030,37 @@ bool CTigVM::hasFlag(int objId, int flagId) {
 	if (getMemberInt(objId, flagsId) && flagId)
 		return true;
 	return false;
+}
+
+/** Call the Tig function that has been passed to callParams. */
+void CTigVM::callPassedFn(int objId) {
+	int memberId = getMemberId(callParams[0].getStringValue());
+	callParams.erase(callParams.begin());
+	CTigVar result = callMember(objId, memberId, callParams);
+	callParams.clear();
+}
+
+/** Call the external function for this object member. */
+void CTigVM::callExternal(int objId, int memberId) {
+	stack.reserveLocalVars(0);
+	objects[objId].cppObj->tigCall(memberId);
+	returnTrue();
+}
+
+//TO DO: probably want to read stack, not pop it!
+
+int CTigVM::getStackValueInt() {
+	CTigVar value = stack.pop();
+	return value.getIntValue();
+}
+
+float CTigVM::getStackValueFloat() {
+	CTigVar value = stack.pop();
+	return value.getFloatValue();
+}
+
+std::string CTigVM::getStackValueStr() {
+	CTigVar value = stack.pop();
+	return value.getStringValue();
 }
 

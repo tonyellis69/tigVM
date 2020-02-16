@@ -18,6 +18,7 @@ public:
 	CTigVar() { intValue = 0; floatValue = 0.0; funcAddress = 0; type = tigUndefined; }
 	CTigVar(int intVal) { setIntValue(intVal); }
 	CTigVar(float floatVal) { setFloatValue(floatVal); }
+	CTigVar(const std::string& strVal) { setStringValue(strVal); }
 	CTigVar(TigVarType typeVal) { type = typeVal; };
 	CTigVar(const CTigVar& var2);
 	void operator = (const int& var2);
