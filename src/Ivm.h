@@ -12,7 +12,7 @@ public:
 	virtual ITigObj* getObject(const std::string& objName) = 0;
 
 
-	virtual int getStackValueInt() = 0;
-	virtual float getStackValueFloat() = 0;
-	virtual std::string getStackValueStr() = 0;
+	virtual int getParamInt(int paramNo) = 0;
+	virtual float getParamFloat(int paramNo) = 0;
+	virtual std::string getParamStr(int paramNo) = 0;
 };

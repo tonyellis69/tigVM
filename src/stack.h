@@ -29,9 +29,23 @@ public:
 	CTigVar& local(int var);
 	
 
-	void reserveLocalVars(int varCount);
-	void freeLocalVars(int varCount);
+	void reserveLocalVars(int varCount, int paramCount);
+	void freeLocalVars();
+	void removeTop(int count) {
+		unsigned int currentSize = stack.size();
+		stack.resize(currentSize - count);
+	}
+	void pushReturnAddress(int returnObj, int addr) {
+		push(returnObj);
+		push(addr);
+	}
+	std::tuple<int, int> popReturnAddress() {
+		int addr = pop().getIntValue();
+		int obj = pop().getIntValue();
+		return { addr,obj };
+	}
 
 	std::vector<CTigVar> stack;
 	int localVarStart; ///<Index of first local variable in this frame.
+
 };

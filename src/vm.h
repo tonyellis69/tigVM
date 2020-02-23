@@ -293,12 +293,14 @@ public:
 	std::string callName; ///<Temp store for name of a function being called externally.
 	std::vector<CTigVar> callParams; ///<Temp store for paramaters of function called externally.
 
+	int getParamInt(int paramNo);
+	float getParamFloat(int paramNo);
+	std::string getParamStr(int paramNo);
+
 private:
 	void callExternal(int objId, int memberId);
 
-	int getStackValueInt();
-	float getStackValueFloat();
-	std::string getStackValueStr();
+	
 
 
 	std::string currentProgFile; ///<Path of the current program file.
@@ -309,4 +311,7 @@ private:
 	bool paused;
 	bool capitaliseNext; ///<If true, capitaliseNext the next letter printed.
 
+
 };
+
+const int externalFunc = -1;

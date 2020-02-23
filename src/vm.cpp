@@ -633,8 +633,6 @@ void CTigVM::createTimedEvent() {
 /** Push an object identifier onto the stack. */
 void CTigVM::pushObj() {
 	int objId = readWord();
-	//if (objId == selfObjId)
-	//	objId = currentObject;
 	stack.pushObj(objId);
 }
 
@@ -651,41 +649,35 @@ void CTigVM::call() {
 
 	callee = resolveVariableAddress(memberId, obj);
 
-	std::vector<CTigVar> params(paramCount);
-	for (int p = 0; p < paramCount; p++) {
-		params[p] = stack.pop();
-	}
-
 	if (callee == NULL) {
+		stack.removeTop(paramCount);
 		stack.pushUndefined();
 		return;
 	}
 
 	if (callee->type != tigFunc) {
+		stack.removeTop(paramCount);
 		stack.push(*callee);
 		return;
 	}
 
-	stack.push(currentObject);
-	stack.push(pc); //save return address
+	int oldCurrentObject = currentObject;
+	int oldPC = pc;
 
 	currentObject = obj;
-
 	pc = callee->getFuncAddress();
 
-	if (pc == -1) {
-		/////!!! pass params, have callExternal restack them as further down
+	if (pc == externalFunc) {
+		stack.reserveLocalVars(0, paramCount);
+		stack.pushReturnAddress(oldCurrentObject, oldPC);
 		callExternal(obj,memberId);
 		return;
 	}
 
 
-	int varCount = readByte();
-	stack.reserveLocalVars(varCount);
-
-	for (int p = 0; p < paramCount; p++) {
-		stack.local(p) = params[(paramCount - 1) - p];
-	}
+	int varCount = readByte();  //local vars + params
+	stack.reserveLocalVars(varCount,paramCount);
+	stack.pushReturnAddress(oldCurrentObject,oldPC);
 }
 
 
@@ -697,35 +689,27 @@ void CTigVM::callDeref() {
 
 	callee = resolveVariableAddress(memberId, obj);
 
-	std::vector<CTigVar> params(paramCount);
-	for (int p = 0; p < paramCount; p++) {
-		params[p] = stack.pop();
-	}
-
 	if (callee == NULL) {
+		stack.removeTop(paramCount);
 		stack.pushUndefined();
 		return;
 	}
 
 	if (callee->type != tigFunc) {
+		stack.removeTop(paramCount);
 		stack.push(*callee);
 		return;
 	}
 
-	stack.push(currentObject);
-	stack.push(pc); //save return address
+	int oldCurrentObject = currentObject;
+	int oldPC = pc;
 
 	currentObject = obj;
-
 	pc = callee->getFuncAddress();
 
 	int varCount = readByte();
-	stack.reserveLocalVars(varCount);
-
-	for (int p = 0; p < paramCount; p++) {
-		stack.local(p) = params[(paramCount - 1) - p];
-	}
-
+	stack.reserveLocalVars(varCount,paramCount);
+	stack.pushReturnAddress(oldCurrentObject, oldPC);
 }
 
 /** Call the superclass version of the function. */
@@ -734,11 +718,6 @@ void CTigVM::superCall() {
 	int memberId = readWord();
 	int paramCount = readByte();
 
-	std::vector<CTigVar> params(paramCount);
-	for (int p = 0; p < paramCount; p++) {
-		params[p] = stack.pop();
-	}
-
 	auto fnMember = objects[superClassId].members.find(memberId);
 	if (fnMember == objects[superClassId].members.end()) {
 		cerr << "\nError! Attempt to superclass member function " << memberId <<
@@ -746,17 +725,14 @@ void CTigVM::superCall() {
 		return;
 	}
 
-	stack.push(currentObject);
-	stack.push(pc); //save return address
+	int oldCurrentObject = currentObject;
+	int oldPC = pc;;
 
 	pc = fnMember->second.getFuncAddress();
 	
 	int varCount = readByte();
-	stack.reserveLocalVars(varCount);
-
-	for (int p = 0; p < paramCount; p++) {
-		stack.local(p) = params[(paramCount - 1) - p];
-	}
+	stack.reserveLocalVars(varCount,paramCount);
+	stack.pushReturnAddress(oldCurrentObject, oldPC);
 }
 
 
@@ -764,21 +740,19 @@ void CTigVM::superCall() {
 /** Return execution to the calling address left on the stack, leaving the current top value at the top. */
 void CTigVM::returnOp() {
 	CTigVar value = stack.pop();
-	int localVarCount = stack.pop().getIntValue();
-	stack.freeLocalVars(localVarCount);
-	pc = stack.pop().getIntValue(); //get calling address
-	currentObject = stack.pop().getIntValue(); //get calling object
+
+	std::tie(pc, currentObject) = stack.popReturnAddress();
+
+	stack.freeLocalVars();
 	stack.push(value);
 	if (pc == NULL)
 		status = vmEof;
 }
 
 /** Return execution to the calling address left on the stack, leaving 1 at the top. */
-void CTigVM::returnTrue() {
-	int localVarCount = stack.pop().getIntValue();
-	stack.freeLocalVars(localVarCount);
-	pc = stack.pop().getIntValue(); //get calling address
-	currentObject = stack.pop().getIntValue(); //get calling object
+void CTigVM::returnTrue() {	
+	std::tie(pc, currentObject) = stack.popReturnAddress();
+	stack.freeLocalVars();
 	stack.push(1);
 	if (pc == NULL)
 		status = vmEof;
@@ -1800,16 +1774,17 @@ CTigVar CTigVM::callMember(int objId, int msgId, std::vector<CTigVar>& params) {
 
 	if (objMember->type == tigFunc) {
 		int addr = objMember->getFuncAddress();
-		stack.push(NULL); //dummy calling object
-		stack.push(NULL); //dummy start positionHint
+	//	stack.pushReturnAddress(77, 77); // dummies for opReturn to pop
 		currentObject = objId;
 		pc = addr;
 		int varCount = readByte();
-		stack.reserveLocalVars(varCount);
 
-		int x = 0;
+		//preload stack with params
 		for (auto param : params)
-			stack.local(x++) = param;
+			stack.push(param);
+
+		stack.reserveLocalVars(varCount,params.size());
+		stack.pushReturnAddress(NULL, NULL); // dummies for opReturn to pop
 
 		status = vmExecuting;
 		execute();
@@ -1820,14 +1795,9 @@ CTigVar CTigVM::callMember(int objId, int msgId, std::vector<CTigVar>& params) {
 	return *objMember;
 }
 
-
-
-
 std::string CTigVM::getMemberName(int memberId) {
 	return memberNames[memberId - memberIdStart];
 }
-
-
 
 bool CTigVM::inheritsFrom(int obj, int classObj) {
 	for (auto currentClass : objects[obj].classIds) {
@@ -2042,25 +2012,21 @@ void CTigVM::callPassedFn(int objId) {
 
 /** Call the external function for this object member. */
 void CTigVM::callExternal(int objId, int memberId) {
-	stack.reserveLocalVars(0);
-	objects[objId].cppObj->tigCall(memberId);
-	returnTrue();
+	int result = objects[objId].cppObj->tigCall(memberId);
+	stack.push(result);
+	returnOp();
 }
 
-//TO DO: probably want to read stack, not pop it!
 
-int CTigVM::getStackValueInt() {
-	CTigVar value = stack.pop();
-	return value.getIntValue();
+int CTigVM::getParamInt(int paramNo) {
+	return stack.local(paramNo).getIntValue();
 }
 
-float CTigVM::getStackValueFloat() {
-	CTigVar value = stack.pop();
-	return value.getFloatValue();
+float CTigVM::getParamFloat(int paramNo) {
+	return stack.local(paramNo).getFloatValue();
 }
 
-std::string CTigVM::getStackValueStr() {
-	CTigVar value = stack.pop();
-	return value.getStringValue();
+std::string CTigVM::getParamStr(int paramNo) {
+	return stack.local(paramNo).getStringValue();
 }
 

@@ -53,21 +53,20 @@ CTigVar & CStack::local(int var) {
 }
 
 /** Reserve space for the current frame's local variables. */
-void CStack::reserveLocalVars(int varCount) {
-	CTigVar currentLocalVarStart(localVarStart);
-	stack.push_back(currentLocalVarStart);
-	localVarStart = stack.size();
+void CStack::reserveLocalVars(int varCount, int paramCount) {
+	int oldLocalVarStart = localVarStart;
+	localVarStart = stack.size() - paramCount;
 	if (varCount > 0) {
-		stack.resize(stack.size() + varCount);
+		stack.resize(stack.size() + (varCount-paramCount));
 	}
-	CTigVar varCountRef(varCount);
-	stack.push_back(varCountRef);
+
+	stack.push_back(oldLocalVarStart);
 }
 
 /** Free space reserved for local variables. */
-void CStack::freeLocalVars(int varCount) {
-	//stack.resize(stack.size() - varCount);
-	//TO DO: I *think* the above method is redundant. Keep an eye on this!!!
+void CStack::freeLocalVars() {
+	int oldLocalVarStart = pop().getIntValue();
+
 	stack.resize(localVarStart);
-	localVarStart = pop().getIntValue();
+	localVarStart = oldLocalVarStart;
 }
