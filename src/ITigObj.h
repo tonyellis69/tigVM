@@ -8,13 +8,12 @@ class CTigObjptr;
 /** A clean interface to VM Tig objects .*/
 class ITigObj {
 public:
-	virtual int getMemberInt(const std::string& memberName) = 0;
-	virtual float getMemberFloat(const std::string& memberName) = 0;
-	virtual std::string getMemberStr(const std::string& memberName) = 0;
+	virtual int& tigMemberInt(const std::string& memberName) = 0;
+	virtual float& tigMemberFloat(const std::string& memberName) = 0;
+	virtual std::string tigMemberStr(const std::string& memberName) = 0;
 
-	virtual void setMember(const std::string& memberName, int value) = 0;
-	virtual void setMember(const std::string& memberName, float value) = 0;
-	virtual void setMember(const std::string& memberName, const std::string& value) = 0;
+	virtual int& tigMemberInt(int memberId) = 0;
+
 
 	template <typename H, typename... T>
 	void call(H h,T... t) {
@@ -29,6 +28,10 @@ public:
 	virtual int getMemberId(const std::string& memberName) = 0;
 	virtual int getParamInt(int paramNo) = 0;
 
+	template <typename T>
+	T& getRef(const std::string& memberName) {
+		return getMemberRef(memberName);
+	}
 
 	virtual void setCppObj(CTigObjptr* cppObj) = 0;
 	virtual CTigObjptr* getCppObj() = 0;
@@ -47,13 +50,19 @@ private:
 
 class CTigObjptr {
 public:
-	int getMemberInt(const std::string& memberName) {
-		return tigObj->getMemberInt(memberName);
+	int& tigMemberInt(const std::string& memberName) {
+		return tigObj->tigMemberInt(memberName);
+	}
+	int& tigMemberInt(int memberId) {
+		return tigObj->tigMemberInt(memberId);
 	}
 
-	void setMember(const std::string& memberName, int value) {
-		tigObj->setMember(memberName, value);
+	template <typename T>
+	T& tigTest(const std::string& memberName) {
+
 	}
+
+	
 
 	template <typename H, typename... T>
 	void callTig(H h, T... t) {
@@ -81,6 +90,10 @@ public:
 	}
 	int getParamInt(int paramNo) {
 		return tigObj->getParamInt(paramNo);
+	}
+	ITigObj* getParamObj(int paramNo) {
+		int objId = tigObj->getParamInt(paramNo);
+		return tigObj->getObject(objId);
 	}
 
 	virtual int tigCall(int memberId) = 0;

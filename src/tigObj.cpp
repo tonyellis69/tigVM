@@ -2,35 +2,26 @@
 
 #include "vm.h"
 
-int CTigObj::getMemberInt(const std::string& memberName) {
+int& CTigObj::tigMemberInt(const std::string& memberName) {
 	int memberId = pVM->getMemberId(memberName);
-	return members[memberId].getIntValue();
+	return members[memberId].getIntRef();
 }
 
-float CTigObj::getMemberFloat(const std::string& memberName) {
+float& CTigObj::tigMemberFloat(const std::string& memberName) {
 	int memberId = pVM->getMemberId(memberName);
-	return members[memberId].getFloatValue();
+	return members[memberId].getFloatRef();
 }
 
-std::string CTigObj::getMemberStr(const std::string& memberName) {
+std::string CTigObj::tigMemberStr(const std::string& memberName) {
 	int memberId = pVM->getMemberId(memberName);
-	return members[memberId].getStringValue();
+	return members[memberId].getStringRef();
 }
 
-void CTigObj::setMember(const std::string& memberName, int value) {
-	int memberId = pVM->getMemberId(memberName);
-	members.at(memberId) = value;
+int& CTigObj::tigMemberInt(int memberId) {
+	return members[memberId].getIntRef();
 }
 
-void CTigObj::setMember(const std::string& memberName, float value) {
-	int memberId = pVM->getMemberId(memberName);
-	members.at(memberId) = value;
-}
 
-void CTigObj::setMember(const std::string& memberName, const std::string& value) {
-	int memberId = pVM->getMemberId(memberName);
-	members.at(memberId) = value;
-}
 
 ITigObj* CTigObj::getObject(int id) {
 	return pVM->getObject(id);

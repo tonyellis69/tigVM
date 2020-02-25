@@ -214,7 +214,7 @@ public:
 	
 	CTigVar getGlobalVar(std::string varName);
 	CTigVar getMember(int objNo, int memberId);
-	int getMemberInt(int objNo, int memberId);
+	int tigMemberInt(int objNo, int memberId);
 	int getMemberId(std::string  name);
 
 	int getFlagBitmask(std::string name);
@@ -232,9 +232,10 @@ public:
 
 	bool hasMember(int objNo, int memberNo);
 
-	CTigObj* getObject(int objId);
+	//CTigObj* getTigObj(int objId);
 	int getObjectId(CTigObj* obj);
 	ITigObj* getObject(const std::string& objName);
+	ITigObj* getObject(int objId);
 	int getConst(const std::string& constName);
 
 	std::string devil(std::string text);

@@ -17,14 +17,19 @@ public:
 	static void setVM(CTigVM* vm) {
 		pVM = vm;
 	}
-	int getMemberInt(const std::string& memberName);
-	float getMemberFloat(const std::string& memberName);
-	std::string getMemberStr(const std::string& memberName);
+	int& tigMemberInt(const std::string& memberName);
+	float& tigMemberFloat(const std::string& memberName);
+	std::string tigMemberStr(const std::string& memberName);
 
-	void setMember(const std::string& memberName, int value);
-	void setMember(const std::string& memberName, float value);
-	void setMember(const std::string& memberName, const std::string& value);
+	int& tigMemberInt(int memberId);
 
+	template <typename T>
+	T& getMemberRef(const std::string& memberName) {
+		int memberId = pVM->getMemberId(memberName);
+		return members[memberId].getRef();
+	}
+
+	
 	int getObjId() {
 		return id;
 	}

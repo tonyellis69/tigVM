@@ -1058,13 +1058,13 @@ void CTigVM::in() {
 	int container = containerObj.getObjId();
 	int obj = searchObj.getObjId();
 
-	int containerChild = getMemberInt(container, childId);
+	int containerChild = tigMemberInt(container, childId);
 	while (containerChild != 0) {
 		if (containerChild == obj) {
 			stack.push(1);
 			return;
 		}
-		containerChild = getMemberInt(containerChild, siblingId);
+		containerChild = tigMemberInt(containerChild, siblingId);
 	}
 	stack.push(0);
 }
@@ -1092,10 +1092,10 @@ void CTigVM::getVar() {
 void CTigVM::children() {
 	int objId = stack.pop().getObjId();
 	int count = 0;
-	int childObjId = getMemberInt(objId, childId);
+	int childObjId = tigMemberInt(objId, childId);
 	while (childObjId != 0) {
 		count++;
-		childObjId = getMemberInt(childObjId, siblingId);
+		childObjId = tigMemberInt(childObjId, siblingId);
 	}
 	stack.push(count);
 }
@@ -1488,16 +1488,16 @@ void CTigVM::deleteOp() {
 	CTigVar obj = stack.pop();
 	int objId = obj.getObjId();
 	
-	int parentObj = getMemberInt(objId, parentId);
+	int parentObj = tigMemberInt(objId, parentId);
 
 	if (parentObj) {   //remove from object tree
-		int childObj = getMemberInt(parentObj, childId);
+		int childObj = tigMemberInt(parentObj, childId);
 		int olderSibling = 0;
 		while (childObj != objId) {
 			olderSibling = childObj;
-			childObj = getMemberInt(childObj, siblingId);
+			childObj = tigMemberInt(childObj, siblingId);
 		}
-		int objSib = getMemberInt(objId, siblingId);
+		int objSib = tigMemberInt(objId, siblingId);
 		if (olderSibling)
 			objects[olderSibling].members[siblingId].setObjId(objSib);
 		else
@@ -1720,7 +1720,7 @@ CTigVar CTigVM::getMember(int objNo, int memberId) {
 	return obj->members[memberId];
 }
 
-int CTigVM::getMemberInt(int objNo, int memberId) {
+int CTigVM::tigMemberInt(int objNo, int memberId) {
 	return getMember(objNo, memberId).getIntValue();
 }
 
@@ -1828,13 +1828,13 @@ bool CTigVM::hasMember(int objNo, int memberNo) {
 	return true;
 }
 
-
-CTigObj * CTigVM::getObject(int objId) {
+/*
+CTigObj * CTigVM::getTigObj(int objId) {
 	auto found = objects.find(objId);
 	if (found == objects.end())
 		return NULL;
 	return &found->second;
-}
+}*/
 
 
 
@@ -1852,6 +1852,13 @@ ITigObj* CTigVM::getObject(const std::string& objName) {
 		fatalLog << "\nError! Object '" << objName << "' not found.";
 	}
 	return &objects[objId];
+}
+
+ITigObj* CTigVM::getObject(int objId) {
+	auto found = objects.find(objId);
+	if (found == objects.end())
+		return NULL;
+	return &found->second;;
 }
 
 int CTigVM::getConst(const std::string& constName) {
@@ -1997,14 +2004,18 @@ bool CTigVM::hasFlag(int objId, int flagId) {
 
 	if (objects[objId].members.find(flagsId) == objects[objId].members.end())
 		return false;
-	if (getMemberInt(objId, flagsId) && flagId)
+	if (tigMemberInt(objId, flagsId) && flagId)
 		return true;
 	return false;
 }
 
 /** Call the Tig function that has been passed to callParams. */
 void CTigVM::callPassedFn(int objId) {
-	int memberId = getMemberId(callParams[0].getStringValue());
+	int memberId;
+	if (callParams[0].type == tigString)
+		memberId = getMemberId(callParams[0].getStringValue());
+	else
+		memberId = callParams[0].getIntValue();
 	callParams.erase(callParams.begin());
 	CTigVar result = callMember(objId, memberId, callParams);
 	callParams.clear();

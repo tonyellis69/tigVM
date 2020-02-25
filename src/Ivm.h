@@ -10,6 +10,7 @@ class Ivm {
 public:
 	virtual int getConst(const std::string& constName) = 0;
 	virtual ITigObj* getObject(const std::string& objName) = 0;
+	virtual ITigObj* getObject(int objId) = 0;
 
 
 	virtual int getParamInt(int paramNo) = 0;

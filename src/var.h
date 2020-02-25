@@ -59,7 +59,24 @@ public:
 	bool comp(TX, TY) {
 		return TX > TY;
 	}
+	int& getIntRef() {
+		return intValue;
+	}
+	float& getFloatRef() {
+		return floatValue;
+	}
+	std::string getStringRef() {
+		return  *pStrValue;
+	}
+	template <class T>
+	T& getRef() {
+		if (type == tigInt)
+			return intValue;
+		if (type == tigFloat)
+			return floatValue;
+		//etc
 
+	}
 
 	TigVarType type;
 	std::shared_ptr<std::string> pStrValue;
