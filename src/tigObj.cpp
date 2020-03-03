@@ -21,6 +21,10 @@ int& CTigObj::tigMemberInt(int memberId) {
 	return members[memberId].getIntRef();
 }
 
+std::string CTigObj::tigMemberStr(int memberId) {
+	return members[memberId].getStringRef();
+}
+
 
 
 ITigObj* CTigObj::getObject(int id) {
@@ -43,6 +47,15 @@ void CTigObj::passCallname(const std::string& fnName){
 
 void CTigObj::call() {
 	pVM->callPassedFn(id);
+}
+
+int CTigObj::callInt() {
+	return pVM->callPassedFn(id).getIntValue();
+}
+
+ITigObj* CTigObj::callObj() {
+	int objId = pVM->callPassedFn(id).getObjId();
+	return pVM->getObject(objId);
 }
 
 void CTigObj::passParam(int param) {

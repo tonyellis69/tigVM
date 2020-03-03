@@ -286,7 +286,7 @@ void CTigVM::execute() {
 		case opAnd: and(); break;
 		case opOr: or(); break;
 		case opArrayPush: arrayPush(); break;
-		case opArrayRemove: arrayRemove(); break;
+		case opArrayRemoveValue: arrayRemoveValue(); break;
 		case opMsg: msg(); break;
 		case opHas: has(); break; 
 		case opMatch: match(); break;
@@ -307,6 +307,7 @@ void CTigVM::execute() {
 		case opRound: roundOp(); break;
 		case opMin: minOp(); break;
 		case opMax: maxOp(); break;
+		case opArrayRemove: arrayRemove(); break;
 		}
 	}
 	if (pc >= progBufSize)
@@ -1327,7 +1328,7 @@ void CTigVM::arrayPush() {
 	pVar->pArray->elements.push_back(value);
 }
 
-void CTigVM::arrayRemove() {
+void CTigVM::arrayRemoveValue() {
 	int varId = stack.pop().getIntValue();
 	CTigVar* pVar = resolveVariableAddress(varId);
 	CTigVar value = stack.pop();
@@ -1655,6 +1656,24 @@ void CTigVM::maxOp() {
 		result = max(op1.getIntValue(), op2.getIntValue());
 	}
 	stack.push(result);
+}
+
+/** Remove an item from an array by index. */
+void CTigVM::arrayRemove() {
+	int varId = stack.pop().getIntValue();
+	CTigVar* pVar = resolveVariableAddress(varId);
+	CTigVar index = stack.pop();
+	if (pVar->type != tigArray) {
+		liveLog << alertMsg << "\nError! Attempt to remove element from non-array.";
+		return;
+	}
+
+	if (index.type != tigInt || index.getIntValue() >= pVar->pArray->elements.size()) {
+		liveLog << alertMsg << "\nError! Attempt to remove array element using an illegal index.";
+		return;
+	}
+
+	pVar->pArray->elements.erase(pVar->pArray->elements.begin() + index.getIntValue());
 }
 
 
@@ -2010,7 +2029,7 @@ bool CTigVM::hasFlag(int objId, int flagId) {
 }
 
 /** Call the Tig function that has been passed to callParams. */
-void CTigVM::callPassedFn(int objId) {
+CTigVar CTigVM::callPassedFn(int objId) {
 	int memberId;
 	if (callParams[0].type == tigString)
 		memberId = getMemberId(callParams[0].getStringValue());
@@ -2019,6 +2038,7 @@ void CTigVM::callPassedFn(int objId) {
 	callParams.erase(callParams.begin());
 	CTigVar result = callMember(objId, memberId, callParams);
 	callParams.clear();
+	return result;
 }
 
 /** Call the external function for this object member. */

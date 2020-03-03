@@ -169,7 +169,7 @@ public:
 	void and();
 	void or();
 	void arrayPush();
-	void arrayRemove();
+	void arrayRemoveValue();
 	void msg();
 	void has();
 	void match();
@@ -190,6 +190,7 @@ public:
 	void roundOp();
 	void minOp();
 	void maxOp();
+	void arrayRemove();
 
 
 	CTigVar * resolveVariableAddress(int varId);
@@ -253,7 +254,7 @@ public:
 
 	bool hasFlag(int objId, int flagId);
 
-	void callPassedFn(int objId);
+	CTigVar callPassedFn(int objId);
 
 	int progBufSize;
 	char* progBuf; 

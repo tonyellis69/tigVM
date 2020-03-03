@@ -13,6 +13,7 @@ public:
 	virtual std::string tigMemberStr(const std::string& memberName) = 0;
 
 	virtual int& tigMemberInt(int memberId) = 0;
+	virtual std::string tigMemberStr(int memberId) = 0;
 
 
 	template <typename H, typename... T>
@@ -21,7 +22,21 @@ public:
 		call(t...);
 	};
 
+	template <typename H, typename... T>
+	int callInt(H h, T... t) {
+		passParam(h);
+		return callInt(t...);
+	};
+
+	template <typename H, typename... T>
+	ITigObj* callObj(H h, T... t) {
+		passParam(h);
+		return callObj(t...);
+	};
+
 	virtual void call() = 0;
+	virtual int callInt() = 0;
+	virtual ITigObj* callObj() = 0;
 
 	virtual int getObjId() = 0;
 	virtual ITigObj* getObject(int id) = 0;
@@ -50,6 +65,8 @@ private:
 
 class CTigObjptr {
 public:
+
+
 	int& tigMemberInt(const std::string& memberName) {
 		return tigObj->tigMemberInt(memberName);
 	}
@@ -57,21 +74,32 @@ public:
 		return tigObj->tigMemberInt(memberId);
 	}
 
-	template <typename T>
-	T& tigTest(const std::string& memberName) {
-
+	std::string tigMemberString(int memberId) {
+		return tigObj->tigMemberStr(memberId);
 	}
 
-	
+
 
 	template <typename H, typename... T>
 	void callTig(H h, T... t) {
 		tigObj->call(h,t...);
 	};
+	
+	template <typename H, typename... T>
+	int callTigInt(H h, T... t) {
+		return tigObj->callInt(h, t...);
+	};
 
-	void callTig() {
-		tigObj->call();
-	}
+	template <typename H, typename... T>
+	ITigObj* callTigObj(H h, T... t) {
+		return tigObj->callObj(h, t...);
+	};
+
+	//void callTig() {
+	//	tigObj->call();
+	//}
+
+
 
 	void setTigObj(ITigObj* tigObj) {
 		this->tigObj = tigObj;

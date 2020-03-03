@@ -22,6 +22,7 @@ public:
 	std::string tigMemberStr(const std::string& memberName);
 
 	int& tigMemberInt(int memberId);
+	std::string tigMemberStr(int memberId);
 
 	template <typename T>
 	T& getMemberRef(const std::string& memberName) {
@@ -48,6 +49,8 @@ public:
 private:
 	void passCallname(const std::string& fnName);
 	void call();
+	int callInt();
+	ITigObj* callObj();
 	void passParam(int param) ;
 	void passParam(float param) ;
 	void passParam(const std::string& param);
