@@ -1819,6 +1819,8 @@ std::string CTigVM::getMemberName(int memberId) {
 }
 
 bool CTigVM::inheritsFrom(int obj, int classObj) {
+	if (obj == classObj)
+		return true;
 	for (auto currentClass : objects[obj].classIds) {
 		if (currentClass == classObj)
 			return true;

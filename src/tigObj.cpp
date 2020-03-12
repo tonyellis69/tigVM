@@ -73,3 +73,7 @@ void CTigObj::passParam(const std::string& param) {
 void CTigObj::passParam(CTigObjptr& param) {
 	pVM->callParams.push_back(param.getObjId());
 }
+
+bool CTigObj::isTigClass(int classId) {
+	return pVM->inheritsFrom(id,classId);
+}

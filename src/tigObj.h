@@ -63,6 +63,8 @@ private:
 		return cppObj;
 	}
 
+	bool isTigClass(int classId);
+
 	inline static CTigVM* pVM; ///<Gives access to VM member list etc
 
 

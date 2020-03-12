@@ -16,6 +16,8 @@ public:
 	virtual std::string tigMemberStr(int memberId) = 0;
 
 
+	virtual bool isTigClass(int classId) = 0;
+
 	template <typename H, typename... T>
 	void call(H h,T... t) {
 		passParam(h);
@@ -78,7 +80,9 @@ public:
 		return tigObj->tigMemberStr(memberId);
 	}
 
-
+	bool isTigClass(int classId) {
+		return tigObj->isTigClass(classId);
+	}
 
 	template <typename H, typename... T>
 	void callTig(H h, T... t) {
