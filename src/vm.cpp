@@ -341,11 +341,11 @@ std::string  CTigVM::readString() {
 
 /** Read a 4-byte integer starting at the program counter, advancing it. */
 unsigned int CTigVM::readWord() {
-	unsigned int nextInt = (unsigned char)progBuf[pc];
-	nextInt += progBuf[pc + 1] << 8;
-	nextInt += progBuf[pc + 2] << 16;
-	nextInt += progBuf[pc + 3] << 24;
-	 //int nextInt = (int&)progBuf[pc];
+	//unsigned int nextInt = (unsigned char)progBuf[pc];
+	//nextInt += progBuf[pc + 1] << 8;
+	//nextInt += progBuf[pc + 2] << 16;
+	//nextInt += progBuf[pc + 3] << 24;
+	 int nextInt = (int&)progBuf[pc];
 	pc += 4;
 	return nextInt;
 }
