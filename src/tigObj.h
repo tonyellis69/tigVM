@@ -51,6 +51,7 @@ private:
 	void call();
 	int callInt();
 	ITigObj* callObj();
+	std::string callStr();
 	void passParam(int param) ;
 	void passParam(float param) ;
 	void passParam(const std::string& param);

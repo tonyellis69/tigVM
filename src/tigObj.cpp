@@ -58,6 +58,10 @@ ITigObj* CTigObj::callObj() {
 	return pVM->getObject(objId);
 }
 
+std::string CTigObj::callStr() {
+	return pVM->callPassedFn(id).getStringValue();
+}
+
 void CTigObj::passParam(int param) {
 	pVM->callParams.push_back(param);
 }

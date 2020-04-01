@@ -36,9 +36,16 @@ public:
 		return callObj(t...);
 	};
 
+	template <typename H, typename... T>
+	std::string callStr(H h, T... t) {
+		passParam(h);
+		return callStr(t...);
+	};
+
 	virtual void call() = 0;
 	virtual int callInt() = 0;
 	virtual ITigObj* callObj() = 0;
+	virtual std::string callStr() = 0;
 
 	virtual int getObjId() = 0;
 	virtual ITigObj* getObject(int id) = 0;
@@ -97,6 +104,11 @@ public:
 	template <typename H, typename... T>
 	ITigObj* callTigObj(H h, T... t) {
 		return tigObj->callObj(h, t...);
+	};
+
+	template <typename H, typename... T>
+	std::string callTigStr(H h, T... t) {
+		return tigObj->callStr(h, t...);
 	};
 
 	//void callTig() {
