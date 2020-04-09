@@ -299,6 +299,8 @@ public:
 	float getParamFloat(int paramNo);
 	std::string getParamStr(int paramNo);
 
+	void callParamStr(int objId, int memberId, const std::string& paramStr);
+
 private:
 	void callExternal(int objId, int memberId);
 

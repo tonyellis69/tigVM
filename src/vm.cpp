@@ -1145,7 +1145,8 @@ void CTigVM::makeHot() {
 		id = hotTextFnCalls.addItem(hotTextCall);
 	}
 
-	text = "\\h{" + std::to_string(id) + "}" + text + "\\h";
+	text = "\\h{" + std::to_string(id) + " " + std::to_string(objId) + " "  + std::to_string(method)
+		+ " blah" + "}" + text + "\\h";
 	stack.push(text);
 }
 
@@ -1187,7 +1188,10 @@ void CTigVM::makeHotAlt() {
 	hotTextCall.options.push_back(fnCall);
 	id = hotTextFnCalls.addItem(hotTextCall);
 
-	text = "\\h{" + std::to_string(id) + "}" + text + "\\h";
+	//text = "\\h{" + std::to_string(id) + "}" + text + "\\h";
+
+	text = "\\h{" + std::to_string(id) + " " + std::to_string(objId) + " " + std::to_string(method)
+		+ " blah" + "}" + text + "\\h";
 	stack.push(text);
 }
 
@@ -2061,5 +2065,10 @@ float CTigVM::getParamFloat(int paramNo) {
 
 std::string CTigVM::getParamStr(int paramNo) {
 	return stack.local(paramNo).getStringValue();
+}
+
+void CTigVM::callParamStr(int objId, int memberId, const std::string& paramStr)
+{
+	int b = 0;
 }
 

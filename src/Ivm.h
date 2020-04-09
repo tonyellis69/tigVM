@@ -16,4 +16,6 @@ public:
 	virtual int getParamInt(int paramNo) = 0;
 	virtual float getParamFloat(int paramNo) = 0;
 	virtual std::string getParamStr(int paramNo) = 0;
+
+	virtual void callParamStr(int objId, int memberId, const std::string& paramStr) = 0;
 };
